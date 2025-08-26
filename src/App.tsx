@@ -1,41 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react'
-
-// Types matching what preload exposes
-export type ItemType = 'file' | 'directory'
-export type CleanupCategory = 'Cache' | 'Logs' | 'Temporary' | 'Old Downloads' | 'Browser Cache' | 'App Support'
-
-export interface CleanupItem {
-  id: string
-  name: string
-  path: string
-  size: number
-  type: ItemType
-  category: CleanupCategory
-  lastModified?: number
-}
-
-declare global {
-  interface Window {
-    cleaner?: {
-      scanAll: () => Promise<CleanupItem[]>
-      deleteItems: (paths: string[]) => Promise<{ deleted: number, failed: number }>
-      onScanProgress: (cb: (progress: number) => void) => () => void
-    }
-  }
-}
-
-const formatter = new Intl.NumberFormat('pt-BR')
-
-function formatBytes(bytes: number) {
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-  if (bytes === 0) return '0 B'
-  const i = Math.floor(Math.log(bytes) / Math.log(1024))
-  return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`
-}
-
-const CATEGORY_ORDER: CleanupCategory[] = [
-  'Cache', 'Logs', 'Temporary', 'Old Downloads', 'Browser Cache', 'App Support'
-]
+import { CleanupCategory, CleanupItem, CATEGORY_ORDER } from './types'
+import { Header } from './components/Header'
+import { Sidebar } from './components/Sidebar'
+import { CategorySection } from './components/CategorySection'
+import { formatBytes } from './utils/format'
 
 export default function App() {
   const [items, setItems] = useState<CleanupItem[]>([])
@@ -110,54 +78,18 @@ export default function App() {
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', height: '100vh', fontFamily: 'ui-sans-serif, system-ui' }}>
-      <aside style={{ borderRight: '1px solid #ddd', padding: 16, overflow: 'auto' }}>
-        <h2 style={{ marginTop: 0 }}>Resumo</h2>
-        <div style={{ display: 'grid', gap: 8 }}>
-          <Row icon="💾" label="Espaço Total" value={formatBytes(totalSize)} />
-          {selectedSize > 0 && <Row icon="✅" label="Selecionado" value={formatBytes(selectedSize)} color="#2e7d32" />}
-        </div>
-
-        {isScanning && (
-          <div style={{ marginTop: 16 }}>
-            <div style={{ fontSize: 12, color: '#666' }}>Analisando arquivos...</div>
-            <progress value={progress} max={1} style={{ width: '100%' }} />
-          </div>
-        )}
-
-        <h3 style={{ marginTop: 24 }}>Categorias</h3>
-        <div style={{ display: 'grid', gap: 8 }}>
-          {CATEGORY_ORDER.map(cat => {
-            const list = grouped[cat]
-            if (!list || list.length === 0) return (
-              <div key={cat} style={{ opacity: 0.6 }}>{cat}</div>
-            )
-            const size = list.reduce((a, b) => a + b.size, 0)
-            const selCount = list.filter(i => selected[i.id]).length
-            return (
-              <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600 }}>{cat}</div>
-                  <div style={{ fontSize: 12, color: '#666' }}>{list.length} itens • {formatBytes(size)}</div>
-                  {selCount > 0 && <div style={{ fontSize: 11, color: '#2e7d32' }}>{selCount} selecionados</div>}
-                </div>
-                <div>
-                  <button onClick={() => selectAll(cat)} style={{ marginRight: 4 }}>Selecionar</button>
-                  <button onClick={() => deselectAll(cat)}>Limpar</button>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </aside>
+      <Sidebar
+        items={items}
+        grouped={grouped}
+        selected={selected}
+        isScanning={isScanning}
+        progress={progress}
+        selectAll={selectAll}
+        deselectAll={deselectAll}
+      />
 
       <main style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottom: '1px solid #ddd' }}>
-          <h1 style={{ margin: 0, fontSize: 20 }}>CleanMyMac Pro</h1>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {isScanning ? <span>⏳</span> : <button onClick={handleScan}>Analisar</button>}
-            {selectedSize > 0 && <button onClick={handleDelete} style={{ background: '#1976d2', color: 'white' }}>Limpar</button>}
-          </div>
-        </header>
+        <Header isScanning={isScanning} onScan={handleScan} canClean={selectedSize > 0} onClean={handleDelete} />
         <section style={{ padding: 16, overflow: 'auto' }}>
           {items.length === 0 && !isScanning ? (
             <div style={{ textAlign: 'center', padding: 48, color: '#666' }}>
@@ -165,38 +97,9 @@ export default function App() {
               <div style={{ fontSize: 18 }}>Clique em <b>Analisar</b> para encontrar arquivos que podem ser removidos</div>
             </div>
           ) : (
-            CATEGORY_ORDER.map(cat => {
-              const list = grouped[cat]
-              if (!list || list.length === 0) return null
-              return (
-                <div key={cat} style={{ marginBottom: 24 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                    <div style={{ fontWeight: 700 }}>{cat}</div>
-                    <div style={{ fontSize: 12, color: '#666' }}>{list.length} itens</div>
-                  </div>
-                  <div style={{ display: 'grid', gap: 8 }}>
-                    {list.map(it => {
-                      const isSel = !!selected[it.id]
-                      return (
-                        <div key={it.id} style={{ display: 'grid', gridTemplateColumns: 'auto auto 1fr auto', alignItems: 'center', gap: 12, padding: 8, border: '1px solid #eee', borderRadius: 8 }}>
-                          <input type="checkbox" checked={isSel} onChange={() => toggle(it.id)} />
-                          <div>{it.type === 'directory' ? '📁' : '📄'}</div>
-                          <div>
-                            <div style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name}</div>
-                            <div style={{ fontSize: 12, color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.path}</div>
-                            {it.lastModified && <div style={{ fontSize: 11, color: '#999' }}>Modificado: {new Date(it.lastModified).toLocaleDateString()}</div>}
-                          </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontWeight: 600 }}>{formatBytes(it.size)}</div>
-                            <div style={{ fontSize: 11, color: '#666' }}>{it.type === 'directory' ? 'Pasta' : 'Arquivo'}</div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )
-            })
+            CATEGORY_ORDER.map(cat => (
+              <CategorySection key={cat} category={cat} items={grouped[cat]} selected={selected} toggle={toggle} />
+            ))
           )}
         </section>
       </main>
@@ -204,12 +107,3 @@ export default function App() {
   )
 }
 
-function Row({ icon, label, value, color }: { icon: string, label: string, value: string, color?: string }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <div style={{ fontSize: 18 }}>{icon}</div>
-      <div style={{ flex: 1 }}>{label}</div>
-      <div style={{ fontWeight: 600, color }}>{value}</div>
-    </div>
-  )
-}
