@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { HardDrive, CheckCircle, FolderOpen, Plus, X } from 'lucide-react'
+import { HardDrive, CheckCircle, FolderOpen, MoreVertical } from 'lucide-react'
 
 function SummaryRow({ icon: Icon, label, value, color }: { 
   icon: React.ElementType, 
@@ -22,6 +22,59 @@ function SummaryRow({ icon: Icon, label, value, color }: {
       <span className={`text-sm font-semibold ${color ? 'text-green-600' : 'text-foreground'}`}>
         {value}
       </span>
+    </div>
+  )
+}
+
+function CategoryDropdown({ 
+  category, 
+  selectAll, 
+  deselectAll 
+}: { 
+  category: CleanupCategory, 
+  selectAll: (category: CleanupCategory) => void, 
+  deselectAll: (category: CleanupCategory) => void 
+}) {
+  const [isOpen, setIsOpen] = React.useState(false)
+  
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 rounded transition-colors"
+        title="Opções da categoria"
+      >
+        <MoreVertical className="w-4 h-4" />
+      </button>
+      
+      {isOpen && (
+        <>
+          <div 
+            className="fixed inset-0 z-10" 
+            onClick={() => setIsOpen(false)}
+          />
+          <div className="absolute right-0 top-6 z-20 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-1 w-44">
+            <button
+              onClick={() => {
+                selectAll(category)
+                setIsOpen(false)
+              }}
+              className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+            >
+              Selecionar todos
+            </button>
+            <button
+              onClick={() => {
+                deselectAll(category)
+                setIsOpen(false)
+              }}
+              className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+            >
+              Limpar seleção
+            </button>
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -108,7 +161,7 @@ export function Sidebar({
             const selCount = list.filter(i => selected[i.id]).length
             return (
               <div key={cat} className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
                       <FolderOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -117,28 +170,19 @@ export function Sidebar({
                       <div className="font-semibold text-sm text-gray-800 dark:text-gray-200">{cat}</div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
                         {list.length} itens • {formatBytes(size)}
+                        {selCount > 0 && (
+                          <span className="ml-2 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs font-medium px-2 py-0.5 rounded-full">
+                            {selCount} selecionados
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
-                  {selCount > 0 && (
-                    <div className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs font-medium px-2.5 py-1 rounded-full">
-                      {selCount} selecionados
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center space-x-2">
-                  <button 
-                    onClick={() => selectAll(cat)} 
-                    className="flex-1 bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 hover:border-blue-300 dark:hover:border-blue-500 text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 font-medium py-1.5 px-3 rounded-lg text-xs transition-colors"
-                  >
-                    Selecionar Todos
-                  </button>
-                  <button 
-                    onClick={() => deselectAll(cat)} 
-                    className="bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 hover:border-gray-300 dark:hover:border-gray-400 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100 font-medium py-1.5 px-3 rounded-lg text-xs transition-colors"
-                  >
-                    Limpar
-                  </button>
+                  <CategoryDropdown 
+                    category={cat}
+                    selectAll={selectAll}
+                    deselectAll={deselectAll}
+                  />
                 </div>
               </div>
             )
