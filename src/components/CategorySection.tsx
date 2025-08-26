@@ -37,7 +37,7 @@ export function CategorySection({ category, items, selected, toggle, selectAll, 
   
   return (
     <TooltipProvider>
-      <div className="space-y-4 sm:space-y-6">
+      <div className="space-y-4 sm:space-y-6 flex-1 flex flex-col h-0">
         {/* Header da Categoria */}
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-blue-200 dark:border-blue-700">
           <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
@@ -124,11 +124,11 @@ export function CategorySection({ category, items, selected, toggle, selectAll, 
         </div>
         
         {/* Lista de Arquivos */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="p-3 sm:p-4 border-b border-gray-100 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex-1 flex flex-col h-0">
+          <div className="p-3 sm:p-4 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
             <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Arquivos Encontrados</h2>
           </div>
-          <div className="divide-y divide-gray-100 dark:divide-gray-700 max-h-[60vh] sm:max-h-[70vh] overflow-y-auto">
+          <div className="divide-y divide-gray-100 dark:divide-gray-700 flex-1 overflow-y-auto">
             {items.map(it => (
               <div key={it.id} className="p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                 <ItemRow item={it} selected={!!selected[it.id]} toggle={toggle} />

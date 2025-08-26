@@ -120,7 +120,7 @@ export default function App() {
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         />
         
-        <section className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900">
+        <section className="flex-1 flex flex-col h-0 p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900">
           {isScanning ? (
             <div className="flex flex-col items-center justify-center h-full text-center space-y-6 px-4">
               <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
@@ -155,7 +155,7 @@ export default function App() {
               </div>
             </div>
           ) : (
-            <div className="w-full max-w-6xl mx-auto">
+            <div className="w-full max-w-6xl mx-auto flex-1 flex flex-col h-0">
               {activeCategory ? (
                 <CategorySection 
                   category={activeCategory} 
