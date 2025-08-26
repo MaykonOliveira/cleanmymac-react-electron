@@ -13,7 +13,7 @@ export function CategorySection({ category, items, selected, toggle, selectAll, 
   selectAll?: (category: CleanupCategory) => void,
   deselectAll?: (category: CleanupCategory) => void
 }) {
-  const [isOpen, setIsOpen] = useState(true)
+  const [isOpen, setIsOpen] = useState(false)
   const categoryInfo = CATEGORY_INFO[category]
   
   if (!items || items.length === 0) return null
