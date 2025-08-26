@@ -11,6 +11,7 @@ export default function App() {
   const [selected, setSelected] = useState<Record<string, boolean>>({})
   const [isScanning, setIsScanning] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
 
   useEffect(() => {
     if (!window.cleaner) return
@@ -79,23 +80,27 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      
-      <Sidebar
-        items={items}
-        grouped={grouped}
-        selected={selected}
-        isScanning={isScanning}
-        progress={progress}
-        selectAll={selectAll}
-        deselectAll={deselectAll}
-      />
+      <div className={`transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-96' : 'w-0'} overflow-hidden`}>
+        <Sidebar
+          items={items}
+          grouped={grouped}
+          selected={selected}
+          isScanning={isScanning}
+          progress={progress}
+          selectAll={selectAll}
+          deselectAll={deselectAll}
+          onClose={() => setSidebarOpen(false)}
+        />
+      </div>
 
-      <main className="flex-1 flex flex-col min-w-0">
+      <main className="flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out">
         <Header 
           isScanning={isScanning} 
           onScan={handleScan} 
           canClean={selectedSize > 0} 
-          onClean={handleDelete} 
+          onClean={handleDelete}
+          sidebarOpen={sidebarOpen}
+          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         />
         
         <section className="flex-1 overflow-auto p-8 bg-gray-50 dark:bg-gray-900">

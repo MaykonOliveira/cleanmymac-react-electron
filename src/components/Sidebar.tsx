@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { HardDrive, CheckCircle, FolderOpen, MoreVertical, Info } from 'lucide-react'
+import { HardDrive, CheckCircle, FolderOpen, MoreVertical, Info, X } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 
 function SummaryRow({ icon: Icon, label, value, color }: { 
@@ -87,7 +87,8 @@ export function Sidebar({
   isScanning,
   progress,
   selectAll,
-  deselectAll
+  deselectAll,
+  onClose
 }: {
   items: CleanupItem[],
   grouped: Record<CleanupCategory, CleanupItem[]>,
@@ -95,14 +96,26 @@ export function Sidebar({
   isScanning: boolean,
   progress: number,
   selectAll: (category: CleanupCategory) => void,
-  deselectAll: (category: CleanupCategory) => void
+  deselectAll: (category: CleanupCategory) => void,
+  onClose?: () => void
 }) {
   const totalSize = items.reduce((acc, it) => acc + it.size, 0)
   const selectedSize = items.filter(i => selected[i.id]).reduce((a, b) => a + b.size, 0)
 
   return (
     <TooltipProvider>
-      <aside className="w-96 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-6 overflow-auto">
+      <aside className="w-96 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-6 overflow-auto transition-all duration-300 ease-in-out">
+      {onClose && (
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            title="Ocultar sidebar"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      )}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Resumo do Sistema</h2>
         <div className="space-y-3">
