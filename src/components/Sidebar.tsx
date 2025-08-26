@@ -103,7 +103,7 @@ export function Sidebar({
     <aside className="w-80 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-6 overflow-auto">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Resumo do Sistema</h2>
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="flex items-center justify-between py-2">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
@@ -114,14 +114,16 @@ export function Sidebar({
             <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{formatBytes(totalSize)}</span>
           </div>
           {selectedSize > 0 && (
-            <div className="flex items-center justify-between py-2 bg-green-50 dark:bg-green-900/20 rounded-lg px-3">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-800 flex items-center justify-center">
-                  <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+            <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
+              <div className="flex items-center justify-between py-2">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-800 flex items-center justify-center">
+                    <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  </div>
+                  <span className="text-sm font-medium text-green-800 dark:text-green-300">Selecionados</span>
                 </div>
-                <span className="text-sm font-medium text-green-800 dark:text-green-300">Selecionado para Limpeza</span>
+                <span className="text-sm font-semibold text-green-900 dark:text-green-200">{formatBytes(selectedSize)}</span>
               </div>
-              <span className="text-sm font-semibold text-green-900 dark:text-green-200">{formatBytes(selectedSize)}</span>
             </div>
           )}
         </div>
@@ -161,20 +163,15 @@ export function Sidebar({
             const selCount = list.filter(i => selected[i.id]).length
             return (
               <div key={cat} className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
                       <FolderOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     </div>
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <div className="font-semibold text-sm text-gray-800 dark:text-gray-200">{cat}</div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
                         {list.length} itens • {formatBytes(size)}
-                        {selCount > 0 && (
-                          <span className="ml-2 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs font-medium px-2 py-0.5 rounded-full">
-                            {selCount} selecionados
-                          </span>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -184,6 +181,16 @@ export function Sidebar({
                     deselectAll={deselectAll}
                   />
                 </div>
+                {selCount > 0 && (
+                  <div className="flex items-center justify-between pt-1 border-t border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                        {selCount} item{selCount > 1 ? 's' : ''} selecionado{selCount > 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             )
           })}
