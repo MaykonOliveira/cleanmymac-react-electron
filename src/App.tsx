@@ -98,7 +98,7 @@ export default function App() {
         <Header 
           isScanning={isScanning} 
           onScan={handleScan} 
-          canClean={selectedSize > 0} 
+          canClean={selectedList.length > 0} 
           onClean={handleDelete}
           sidebarOpen={sidebarOpen}
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
