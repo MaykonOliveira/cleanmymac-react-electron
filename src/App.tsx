@@ -4,7 +4,7 @@ import { Header } from './components/Header'
 import { Sidebar } from './components/Sidebar'
 import { CategorySection } from './components/CategorySection'
 import { formatBytes } from './utils/format'
-import { Search } from 'lucide-react'
+import { Search, Loader2 } from 'lucide-react'
 
 export default function App() {
   const [items, setItems] = useState<CleanupItem[]>([])
@@ -104,7 +104,28 @@ export default function App() {
         />
         
         <section className="flex-1 overflow-auto p-8 bg-gray-50 dark:bg-gray-900">
-          {items.length === 0 && !isScanning ? (
+          {isScanning ? (
+            <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
+                <Loader2 className="w-12 h-12 text-white animate-spin" />
+              </div>
+              <div className="space-y-3 max-w-lg">
+                <h2 className="text-3xl font-light text-gray-800 dark:text-gray-200">Analisando sistema...</h2>
+                <p className="text-gray-500 dark:text-gray-400 text-lg leading-relaxed">
+                  Procurando por arquivos desnecessários que podem ser removidos com segurança
+                </p>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-4">
+                  <div 
+                    className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+                    style={{ width: `${progress * 100}%` }}
+                  ></div>
+                </div>
+                <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
+                  {Math.round(progress * 100)}% concluído
+                </p>
+              </div>
+            </div>
+          ) : items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
                 <Search className="w-12 h-12 text-white" />
