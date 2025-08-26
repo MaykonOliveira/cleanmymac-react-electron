@@ -80,8 +80,21 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      <div className={`transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-96' : 'w-0'} overflow-hidden`}>
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 relative">
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      
+      {/* Sidebar */}
+      <div className={`
+        transition-all duration-300 ease-in-out overflow-hidden
+        lg:relative lg:z-auto
+        ${sidebarOpen ? 'fixed inset-y-0 left-0 z-50 w-80 sm:w-96 lg:static lg:w-96' : 'w-0'}
+      `}>
         <Sidebar
           items={items}
           grouped={grouped}
@@ -96,6 +109,7 @@ export default function App() {
         />
       </div>
 
+      {/* Main content */}
       <main className="flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out">
         <Header 
           isScanning={isScanning} 
@@ -106,15 +120,15 @@ export default function App() {
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         />
         
-        <section className="flex-1 overflow-auto p-8 bg-gray-50 dark:bg-gray-900">
+        <section className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900">
           {isScanning ? (
-            <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
-                <Loader2 className="w-12 h-12 text-white animate-spin" />
+            <div className="flex flex-col items-center justify-center h-full text-center space-y-6 px-4">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
+                <Loader2 className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-white animate-spin" />
               </div>
               <div className="space-y-3 max-w-lg">
-                <h2 className="text-3xl font-light text-gray-800 dark:text-gray-200">Analisando sistema...</h2>
-                <p className="text-gray-500 dark:text-gray-400 text-lg leading-relaxed">
+                <h2 className="text-2xl sm:text-3xl font-light text-gray-800 dark:text-gray-200">Analisando sistema...</h2>
+                <p className="text-gray-500 dark:text-gray-400 text-base sm:text-lg leading-relaxed">
                   Procurando por arquivos desnecessários que podem ser removidos com segurança
                 </p>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-4">
@@ -129,19 +143,19 @@ export default function App() {
               </div>
             </div>
           ) : items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
-                <Search className="w-12 h-12 text-white" />
+            <div className="flex flex-col items-center justify-center h-full text-center space-y-6 px-4">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
+                <Search className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-white" />
               </div>
               <div className="space-y-3 max-w-lg">
-                <h2 className="text-3xl font-light text-gray-800 dark:text-gray-200">Sistema pronto para análise</h2>
-                <p className="text-gray-500 dark:text-gray-400 text-lg leading-relaxed">
+                <h2 className="text-2xl sm:text-3xl font-light text-gray-800 dark:text-gray-200">Sistema pronto para análise</h2>
+                <p className="text-gray-500 dark:text-gray-400 text-base sm:text-lg leading-relaxed">
                   Clique em <span className="font-semibold text-blue-600 dark:text-blue-400">Analisar Sistema</span> para encontrar arquivos desnecessários que podem ser removidos com segurança
                 </p>
               </div>
             </div>
           ) : (
-            <div className="max-w-5xl mx-auto">
+            <div className="w-full max-w-6xl mx-auto">
               {activeCategory ? (
                 <CategorySection 
                   category={activeCategory} 
@@ -152,19 +166,23 @@ export default function App() {
                   deselectAll={deselectAll}
                 />
               ) : (
-                <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6">
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-xl">
-                    <FolderOpen className="w-12 h-12 text-white" />
+                <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6 px-4">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-xl">
+                    <FolderOpen className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-white" />
                   </div>
                   <div className="space-y-3 max-w-md">
-                    <h3 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">Selecione uma categoria</h3>
-                    <p className="text-gray-500 dark:text-gray-400 text-lg leading-relaxed">
-                      Clique em uma categoria na sidebar para visualizar os arquivos encontrados e gerenciar sua limpeza
+                    <h3 className="text-xl sm:text-2xl font-semibold text-gray-800 dark:text-gray-200">Selecione uma categoria</h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-base sm:text-lg leading-relaxed">
+                      {sidebarOpen ? (
+                        'Clique em uma categoria na sidebar para visualizar os arquivos encontrados e gerenciar sua limpeza'
+                      ) : (
+                        'Abra a sidebar para selecionar uma categoria e visualizar os arquivos encontrados'
+                      )}
                     </p>
                   </div>
                   <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-700">
                     <p className="text-sm text-blue-700 dark:text-blue-300">
-                      💡 Dica: Use as categorias na sidebar para navegar pelos diferentes tipos de arquivos
+                      💡 Dica: {sidebarOpen ? 'Use as categorias no menu lateral' : 'Abra o menu lateral'} para navegar pelos diferentes tipos de arquivos
                     </p>
                   </div>
                 </div>

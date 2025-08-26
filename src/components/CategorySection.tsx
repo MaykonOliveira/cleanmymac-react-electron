@@ -37,21 +37,21 @@ export function CategorySection({ category, items, selected, toggle, selectAll, 
   
   return (
     <TooltipProvider>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Header da Categoria */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl p-6 border border-blue-200 dark:border-blue-700">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
-                <FolderOpen className="w-8 h-8 text-white" />
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-blue-200 dark:border-blue-700">
+          <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg flex-shrink-0">
+                <FolderOpen className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
               </div>
-              <div>
-                <div className="flex items-center space-x-3 mb-2">
-                  <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{categoryInfo.label}</h1>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
+                  <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 dark:text-gray-100 truncate">{categoryInfo.label}</h1>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <button className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                        <Info className="w-5 h-5" />
+                      <button className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors flex-shrink-0">
+                        <Info className="w-4 h-4 sm:w-5 sm:h-5" />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="max-w-xs">
@@ -59,19 +59,19 @@ export function CategorySection({ category, items, selected, toggle, selectAll, 
                     </TooltipContent>
                   </Tooltip>
                 </div>
-                <div className="grid grid-cols-3 gap-6 text-sm">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 text-sm">
                   <div className="space-y-1">
-                    <p className="text-gray-500 dark:text-gray-400 font-medium">Total de Itens</p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{items.length}</p>
+                    <p className="text-gray-500 dark:text-gray-400 font-medium text-xs sm:text-sm">Total de Itens</p>
+                    <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">{items.length}</p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-gray-500 dark:text-gray-400 font-medium">Tamanho Total</p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{formatBytes(totalSize)}</p>
+                    <p className="text-gray-500 dark:text-gray-400 font-medium text-xs sm:text-sm">Tamanho Total</p>
+                    <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">{formatBytes(totalSize)}</p>
                   </div>
                   {selectedCount > 0 && (
-                    <div className="space-y-1">
-                      <p className="text-green-600 dark:text-green-400 font-medium">Selecionados</p>
-                      <p className="text-lg font-semibold text-green-700 dark:text-green-300">
+                    <div className="space-y-1 col-span-2 lg:col-span-1">
+                      <p className="text-green-600 dark:text-green-400 font-medium text-xs sm:text-sm">Selecionados</p>
+                      <p className="text-base sm:text-lg font-semibold text-green-700 dark:text-green-300">
                         {selectedCount} itens ({formatBytes(selectedSize)})
                       </p>
                     </div>
@@ -82,16 +82,17 @@ export function CategorySection({ category, items, selected, toggle, selectAll, 
             
             {/* Ações */}
             {(selectAll || deselectAll) && (
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2 sm:space-x-3 flex-wrap">
                 {selectedCount < items.length && selectAll && (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
                         onClick={() => selectAll(category)}
-                        className="bg-white dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-300 dark:border-blue-600 px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+                        className="bg-white dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-300 dark:border-blue-600 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 text-sm"
                       >
-                        <Square className="w-4 h-4" />
-                        <span>Selecionar Todos</span>
+                        <Square className="w-4 h-4 flex-shrink-0" />
+                        <span className="hidden sm:inline">Selecionar Todos</span>
+                        <span className="sm:hidden">Sel. Todos</span>
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="top">
@@ -105,10 +106,11 @@ export function CategorySection({ category, items, selected, toggle, selectAll, 
                     <TooltipTrigger asChild>
                       <button
                         onClick={() => deselectAll(category)}
-                        className="bg-white dark:bg-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-600 px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+                        className="bg-white dark:bg-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-600 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 text-sm"
                       >
-                        <CheckSquare className="w-4 h-4" />
-                        <span>Limpar Seleção</span>
+                        <CheckSquare className="w-4 h-4 flex-shrink-0" />
+                        <span className="hidden sm:inline">Limpar Seleção</span>
+                        <span className="sm:hidden">Limpar</span>
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="top">
@@ -123,12 +125,12 @@ export function CategorySection({ category, items, selected, toggle, selectAll, 
         
         {/* Lista de Arquivos */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="p-4 border-b border-gray-100 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Arquivos Encontrados</h2>
+          <div className="p-3 sm:p-4 border-b border-gray-100 dark:border-gray-700">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Arquivos Encontrados</h2>
           </div>
-          <div className="divide-y divide-gray-100 dark:divide-gray-700 max-h-[70vh] overflow-y-auto">
+          <div className="divide-y divide-gray-100 dark:divide-gray-700 max-h-[60vh] sm:max-h-[70vh] overflow-y-auto">
             {items.map(it => (
-              <div key={it.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+              <div key={it.id} className="p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                 <ItemRow item={it} selected={!!selected[it.id]} toggle={toggle} />
               </div>
             ))}
