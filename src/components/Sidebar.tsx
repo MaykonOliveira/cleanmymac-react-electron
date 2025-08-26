@@ -1,8 +1,9 @@
 import React from 'react'
 import { CleanupCategory, CATEGORY_ORDER, CleanupItem, CATEGORY_INFO } from '../types'
 import { formatBytes } from '../utils/format'
-import { FolderOpen, MoreVertical, Info, X } from 'lucide-react'
+import { FolderOpen, MoreVertical, Info, X, HardDrive, CheckCircle } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 
 
 function CategoryDropdown({ 
@@ -84,6 +85,7 @@ export function Sidebar({
   // Calculate total selected items across all categories
   const totalSelectedItems = Object.values(selected).filter(Boolean).length
   const totalSelectedSize = items.filter(item => selected[item.id]).reduce((acc, item) => acc + item.size, 0)
+  const totalSize = items.reduce((acc, item) => acc + item.size, 0)
 
   return (
     <TooltipProvider>
@@ -117,27 +119,52 @@ export function Sidebar({
         </div>
       )}
 
-      {totalSelectedItems > 0 && (
-        <div className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 rounded-xl shadow-sm border border-green-200 dark:border-green-700 p-4 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
-                <span className="text-white font-bold text-sm">{totalSelectedItems}</span>
-              </div>
-              <div>
-                <div className="text-sm font-semibold text-green-800 dark:text-green-200">
-                  {totalSelectedItems} item{totalSelectedItems > 1 ? 's' : ''} selecionado{totalSelectedItems > 1 ? 's' : ''}
+      {items.length > 0 && (
+        <div className="space-y-4 mb-6">
+          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center space-x-2">
+                <div className="w-6 h-6 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                  <HardDrive className="w-3 h-3 text-gray-600 dark:text-gray-300" />
                 </div>
-                <div className="text-xs text-green-600 dark:text-green-300">
-                  {formatBytes(totalSelectedSize)} para limpeza
-                </div>
+                <span>Espaço Total</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                {formatBytes(totalSize)}
               </div>
-            </div>
-          </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {items.length} itens encontrados
+              </div>
+            </CardContent>
+          </Card>
+
+          {totalSelectedSize > 0 && (
+            <Card className="border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/20">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold text-green-800 dark:text-green-200 flex items-center space-x-2">
+                  <div className="w-6 h-6 rounded-lg bg-green-100 dark:bg-green-800 flex items-center justify-center">
+                    <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
+                  </div>
+                  <span>Selecionados</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl font-bold text-green-900 dark:text-green-100">
+                  {formatBytes(totalSelectedSize)}
+                </div>
+                <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                  {totalSelectedItems} itens selecionados
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 max-h-[calc(100vh-300px)] overflow-y-auto">
+
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 max-h-[calc(100vh-400px)] overflow-y-auto">
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Categorias</h2>
         <div className="space-y-3">
           {CATEGORY_ORDER.map(cat => {

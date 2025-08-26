@@ -4,8 +4,7 @@ import { Header } from './components/Header'
 import { Sidebar } from './components/Sidebar'
 import { CategorySection } from './components/CategorySection'
 import { formatBytes } from './utils/format'
-import { Search, Loader2, HardDrive, CheckCircle, FolderOpen } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Search, Loader2, FolderOpen } from 'lucide-react'
 
 export default function App() {
   const [items, setItems] = useState<CleanupItem[]>([])
@@ -143,48 +142,6 @@ export default function App() {
             </div>
           ) : (
             <div className="max-w-5xl mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg font-semibold text-gray-800 dark:text-gray-200 flex items-center space-x-3">
-                      <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-                        <HardDrive className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-                      </div>
-                      <span>Espaço Total</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                      {formatBytes(totalSize)}
-                    </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      {items.length} itens encontrados
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {selectedSize > 0 && (
-                  <Card className="border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/20">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg font-semibold text-green-800 dark:text-green-200 flex items-center space-x-3">
-                        <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-800 flex items-center justify-center">
-                          <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
-                        </div>
-                        <span>Selecionados</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold text-green-900 dark:text-green-100">
-                        {formatBytes(selectedSize)}
-                      </div>
-                      <div className="text-sm text-green-600 dark:text-green-400 mt-1">
-                        {selectedList.length} itens selecionados
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-
               {activeCategory ? (
                 <CategorySection 
                   category={activeCategory} 
