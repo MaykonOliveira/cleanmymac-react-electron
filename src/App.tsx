@@ -108,6 +108,14 @@ export default function App() {
     })
   }
 
+  function selectAllItems() {
+    setSelected(Object.fromEntries(items.map(it => [it.id, true])))
+  }
+
+  function clearSelection() {
+    setSelected({})
+  }
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', height: '100vh', fontFamily: 'ui-sans-serif, system-ui' }}>
       <aside style={{ borderRight: '1px solid #ddd', padding: 16, overflow: 'auto' }}>
@@ -125,6 +133,10 @@ export default function App() {
         )}
 
         <h3 style={{ marginTop: 24 }}>Categorias</h3>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+          <button onClick={selectAllItems}>Selecionar tudo</button>
+          <button onClick={clearSelection}>Limpar tudo</button>
+        </div>
         <div style={{ display: 'grid', gap: 8 }}>
           {CATEGORY_ORDER.map(cat => {
             const list = grouped[cat]
@@ -159,6 +171,12 @@ export default function App() {
           </div>
         </header>
         <section style={{ padding: 16, overflow: 'auto' }}>
+          {items.length > 0 && (
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+              <button onClick={selectAllItems}>Selecionar tudo</button>
+              <button onClick={clearSelection}>Limpar tudo</button>
+            </div>
+          )}
           {items.length === 0 && !isScanning ? (
             <div style={{ textAlign: 'center', padding: 48, color: '#666' }}>
               <div style={{ fontSize: 48 }}>🖥️</div>
