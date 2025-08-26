@@ -4,7 +4,7 @@ import { Header } from './components/Header'
 import { Sidebar } from './components/Sidebar'
 import { CategorySection } from './components/CategorySection'
 import { formatBytes } from './utils/format'
-import { Search, Loader2, HardDrive, CheckCircle } from 'lucide-react'
+import { Search, Loader2, HardDrive, CheckCircle, FolderOpen } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function App() {
@@ -13,6 +13,7 @@ export default function App() {
   const [isScanning, setIsScanning] = useState(false)
   const [progress, setProgress] = useState(0)
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [activeCategory, setActiveCategory] = useState<CleanupCategory | null>(null)
 
   useEffect(() => {
     if (!window.cleaner) return
@@ -90,6 +91,8 @@ export default function App() {
           progress={progress}
           selectAll={selectAll}
           deselectAll={deselectAll}
+          activeCategory={activeCategory}
+          onCategorySelect={setActiveCategory}
           onClose={() => setSidebarOpen(false)}
         />
       </div>
@@ -182,17 +185,33 @@ export default function App() {
                 )}
               </div>
 
-              {CATEGORY_ORDER.map(cat => (
+              {activeCategory ? (
                 <CategorySection 
-                  key={cat} 
-                  category={cat} 
-                  items={grouped[cat]} 
+                  category={activeCategory} 
+                  items={grouped[activeCategory]} 
                   selected={selected} 
                   toggle={toggle} 
                   selectAll={selectAll}
                   deselectAll={deselectAll}
                 />
-              ))}
+              ) : (
+                <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6">
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-xl">
+                    <FolderOpen className="w-12 h-12 text-white" />
+                  </div>
+                  <div className="space-y-3 max-w-md">
+                    <h3 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">Selecione uma categoria</h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-lg leading-relaxed">
+                      Clique em uma categoria na sidebar para visualizar os arquivos encontrados e gerenciar sua limpeza
+                    </p>
+                  </div>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-700">
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                      💡 Dica: Use as categorias na sidebar para navegar pelos diferentes tipos de arquivos
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </section>
