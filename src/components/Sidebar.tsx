@@ -1,31 +1,9 @@
 import React from 'react'
 import { CleanupCategory, CATEGORY_ORDER, CleanupItem, CATEGORY_INFO } from '../types'
 import { formatBytes } from '../utils/format'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
-import { HardDrive, CheckCircle, FolderOpen, MoreVertical, Info, X } from 'lucide-react'
+import { FolderOpen, MoreVertical, Info, X } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 
-function SummaryRow({ icon: Icon, label, value, color }: { 
-  icon: React.ElementType, 
-  label: string, 
-  value: string, 
-  color?: string 
-}) {
-  return (
-    <div className="flex items-center justify-between py-2">
-      <div className="flex items-center space-x-3">
-        <Icon className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm font-medium">{label}</span>
-      </div>
-      <span className={`text-sm font-semibold ${color ? 'text-green-600' : 'text-foreground'}`}>
-        {value}
-      </span>
-    </div>
-  )
-}
 
 function CategoryDropdown({ 
   category, 
@@ -99,12 +77,10 @@ export function Sidebar({
   deselectAll: (category: CleanupCategory) => void,
   onClose?: () => void
 }) {
-  const totalSize = items.reduce((acc, it) => acc + it.size, 0)
-  const selectedSize = items.filter(i => selected[i.id]).reduce((a, b) => a + b.size, 0)
 
   return (
     <TooltipProvider>
-      <aside className="w-96 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-6 overflow-auto transition-all duration-300 ease-in-out">
+      <aside className="w-96 h-full bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-6 overflow-auto transition-all duration-300 ease-in-out">
       {onClose && (
         <div className="flex justify-end mb-4">
           <button
@@ -116,33 +92,6 @@ export function Sidebar({
           </button>
         </div>
       )}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Resumo do Sistema</h2>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between py-2">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-                <HardDrive className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-              </div>
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Espaço Total</span>
-            </div>
-            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{formatBytes(totalSize)}</span>
-          </div>
-          {selectedSize > 0 && (
-            <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
-              <div className="flex items-center justify-between py-2">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-800 flex items-center justify-center">
-                    <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
-                  </div>
-                  <span className="text-sm font-medium text-green-800 dark:text-green-300">Selecionados</span>
-                </div>
-                <span className="text-sm font-semibold text-green-900 dark:text-green-200">{formatBytes(selectedSize)}</span>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
 
       {isScanning && (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
