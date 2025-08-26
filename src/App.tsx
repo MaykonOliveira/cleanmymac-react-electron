@@ -4,6 +4,7 @@ import { Header } from './components/Header'
 import { Sidebar } from './components/Sidebar'
 import { CategorySection } from './components/CategorySection'
 import { formatBytes } from './utils/format'
+import { Search } from 'lucide-react'
 
 export default function App() {
   const [items, setItems] = useState<CleanupItem[]>([])
@@ -77,7 +78,8 @@ export default function App() {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', height: '100vh', fontFamily: 'ui-sans-serif, system-ui' }}>
+    <div className="flex h-screen bg-gray-50">
+      
       <Sidebar
         items={items}
         grouped={grouped}
@@ -88,18 +90,39 @@ export default function App() {
         deselectAll={deselectAll}
       />
 
-      <main style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <Header isScanning={isScanning} onScan={handleScan} canClean={selectedSize > 0} onClean={handleDelete} />
-        <section style={{ padding: 16, overflow: 'auto' }}>
+      <main className="flex-1 flex flex-col min-w-0">
+        <Header 
+          isScanning={isScanning} 
+          onScan={handleScan} 
+          canClean={selectedSize > 0} 
+          onClean={handleDelete} 
+        />
+        
+        <section className="flex-1 overflow-auto p-8">
           {items.length === 0 && !isScanning ? (
-            <div style={{ textAlign: 'center', padding: 48, color: '#666' }}>
-              <div style={{ fontSize: 48 }}>🖥️</div>
-              <div style={{ fontSize: 18 }}>Clique em <b>Analisar</b> para encontrar arquivos que podem ser removidos</div>
+            <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
+                <Search className="w-12 h-12 text-white" />
+              </div>
+              <div className="space-y-3 max-w-lg">
+                <h2 className="text-3xl font-light text-gray-800">Sistema pronto para análise</h2>
+                <p className="text-gray-500 text-lg leading-relaxed">
+                  Clique em <span className="font-semibold text-blue-600">Analisar Sistema</span> para encontrar arquivos desnecessários que podem ser removidos com segurança
+                </p>
+              </div>
             </div>
           ) : (
-            CATEGORY_ORDER.map(cat => (
-              <CategorySection key={cat} category={cat} items={grouped[cat]} selected={selected} toggle={toggle} />
-            ))
+            <div className="max-w-5xl mx-auto">
+              {CATEGORY_ORDER.map(cat => (
+                <CategorySection 
+                  key={cat} 
+                  category={cat} 
+                  items={grouped[cat]} 
+                  selected={selected} 
+                  toggle={toggle} 
+                />
+              ))}
+            </div>
           )}
         </section>
       </main>
