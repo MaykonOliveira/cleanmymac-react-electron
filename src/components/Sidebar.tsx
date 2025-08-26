@@ -187,22 +187,41 @@ export function Sidebar({
               const list = grouped[cat]
               const categoryInfo = CATEGORY_INFO[cat]
               if (!list || list.length === 0) return (
-                <div key={cat} className="flex items-start space-x-2 sm:space-x-3 py-2 sm:py-3 opacity-30 cursor-not-allowed">
-                  <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
-                    <FolderOpen className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 dark:text-gray-500" />
-                  </div>
-                  <div className="flex items-start space-x-1 sm:space-x-2 min-w-0 flex-1">
-                    <span className="text-xs sm:text-sm font-medium text-gray-400 dark:text-gray-500 leading-4 sm:leading-5">{categoryInfo.label}</span>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button className="text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 transition-colors shrink-0 mt-0.5">
-                          <Info className="w-3 h-3" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="max-w-xs">
-                        <p>{categoryInfo.tooltip}</p>
-                      </TooltipContent>
-                    </Tooltip>
+                <div
+                  key={cat}
+                  className="rounded-xl p-3 sm:p-4 transition-colors cursor-not-allowed bg-gray-50 dark:bg-gray-700 opacity-60 border-2 border-transparent"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-start space-x-2 sm:space-x-3 min-w-0 flex-1">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 bg-gray-200 dark:bg-gray-600">
+                        <FolderOpen className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 dark:text-gray-500" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start space-x-1 sm:space-x-2">
+                          <div className="font-semibold text-xs sm:text-sm leading-4 sm:leading-5 text-gray-600 dark:text-gray-400">
+                            {categoryInfo.label}
+                          </div>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button className="text-gray-400 dark:text-gray-500 transition-colors shrink-0 mt-0.5 cursor-not-allowed">
+                                <Info className="w-3 h-3" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-xs">
+                              <p>{categoryInfo.tooltip}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <div className="text-xs mt-1 text-gray-400 dark:text-gray-500">
+                          0 itens • 0 bytes
+                        </div>
+                      </div>
+                    </div>
+                    <div className="opacity-50">
+                      <div className="p-1 text-gray-400 dark:text-gray-500 rounded transition-colors cursor-not-allowed">
+                        <MoreVertical className="w-4 h-4" />
+                      </div>
+                    </div>
                   </div>
                 </div>
               )
