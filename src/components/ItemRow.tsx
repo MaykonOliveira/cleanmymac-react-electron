@@ -48,7 +48,7 @@ export function ItemRow({ item, selected, toggle }: {
       
       <div className="flex-shrink-0 text-right">
         <div className="font-semibold text-gray-900 dark:text-gray-100">{formatBytes(item.size)}</div>
-        <div className={`text-xs mt-1 px-2 py-1 rounded-full ${
+        <div className={`text-xs mt-1 px-3 py-1 rounded-full w-16 text-center ${
           item.type === 'directory' 
             ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' 
             : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
