@@ -1,11 +1,12 @@
 import React from 'react'
-import { CleanupCategory, CATEGORY_ORDER, CleanupItem } from '../types'
+import { CleanupCategory, CATEGORY_ORDER, CleanupItem, CATEGORY_INFO } from '../types'
 import { formatBytes } from '../utils/format'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { HardDrive, CheckCircle, FolderOpen, MoreVertical } from 'lucide-react'
+import { HardDrive, CheckCircle, FolderOpen, MoreVertical, Info } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 
 function SummaryRow({ icon: Icon, label, value, color }: { 
   icon: React.ElementType, 
@@ -100,7 +101,8 @@ export function Sidebar({
   const selectedSize = items.filter(i => selected[i.id]).reduce((a, b) => a + b.size, 0)
 
   return (
-    <aside className="w-80 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-6 overflow-auto">
+    <TooltipProvider>
+      <aside className="w-80 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-6 overflow-auto">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Resumo do Sistema</h2>
         <div className="space-y-3">
@@ -151,12 +153,25 @@ export function Sidebar({
         <div className="space-y-3">
           {CATEGORY_ORDER.map(cat => {
             const list = grouped[cat]
+            const categoryInfo = CATEGORY_INFO[cat]
             if (!list || list.length === 0) return (
               <div key={cat} className="flex items-center space-x-3 py-3 opacity-40">
                 <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
                   <FolderOpen className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                 </div>
-                <span className="text-sm font-medium text-gray-400 dark:text-gray-500">{cat}</span>
+                <div className="flex items-center space-x-2 min-w-0 flex-1">
+                  <span className="text-sm font-medium text-gray-400 dark:text-gray-500">{categoryInfo.label}</span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button className="text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 transition-colors">
+                        <Info className="w-3 h-3" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-xs">
+                      <p>{categoryInfo.tooltip}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
               </div>
             )
             const size = list.reduce((a, b) => a + b.size, 0)
@@ -169,7 +184,19 @@ export function Sidebar({
                       <FolderOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="font-semibold text-sm text-gray-800 dark:text-gray-200">{cat}</div>
+                      <div className="flex items-center space-x-2">
+                        <div className="font-semibold text-sm text-gray-800 dark:text-gray-200">{categoryInfo.label}</div>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                              <Info className="w-3 h-3" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="max-w-xs">
+                            <p>{categoryInfo.tooltip}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
                         {list.length} itens • {formatBytes(size)}
                       </div>
@@ -196,7 +223,8 @@ export function Sidebar({
           })}
         </div>
       </div>
-    </aside>
+      </aside>
+    </TooltipProvider>
   )
 }
 
