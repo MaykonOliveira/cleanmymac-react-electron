@@ -1,15 +1,17 @@
 import React, { useState } from 'react'
 import { CleanupCategory, CleanupItem, CATEGORY_INFO } from '../types'
 import { ItemRow } from './ItemRow'
-import { ChevronDown, ChevronRight, FolderOpen, Info } from 'lucide-react'
+import { ChevronDown, ChevronRight, FolderOpen, Info, CheckSquare, Square } from 'lucide-react'
 import { formatBytes } from '../utils/format'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 
-export function CategorySection({ category, items, selected, toggle }: {
+export function CategorySection({ category, items, selected, toggle, selectAll, deselectAll }: {
   category: CleanupCategory,
   items: CleanupItem[],
   selected: Record<string, boolean>,
-  toggle: (id: string) => void
+  toggle: (id: string) => void,
+  selectAll?: (category: CleanupCategory) => void,
+  deselectAll?: (category: CleanupCategory) => void
 }) {
   const [isOpen, setIsOpen] = useState(true)
   const categoryInfo = CATEGORY_INFO[category]
@@ -68,11 +70,55 @@ export function CategorySection({ category, items, selected, toggle }: {
           </div>
         </div>
         
-        {selectedCount > 0 && (
-          <div className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-sm font-medium px-3 py-1 rounded-full">
-            {selectedCount}/{items.length}
-          </div>
-        )}
+        <div className="flex items-center space-x-2">
+          {selectedCount > 0 && (
+            <div className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-sm font-medium px-3 py-1 rounded-full">
+              {selectedCount}/{items.length}
+            </div>
+          )}
+          
+          {(selectAll || deselectAll) && (
+            <div className="flex items-center space-x-1">
+              {selectedCount < items.length && selectAll && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        selectAll(category)
+                      }}
+                      className="p-2 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                    >
+                      <Square className="w-4 h-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p>Selecionar todos os itens desta categoria</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              
+              {selectedCount > 0 && deselectAll && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        deselectAll(category)
+                      }}
+                      className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    >
+                      <CheckSquare className="w-4 h-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p>Limpar seleção desta categoria</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+          )}
+        </div>
       </div>
       
       {isOpen && (

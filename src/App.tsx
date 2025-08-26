@@ -120,6 +120,8 @@ export default function App() {
                   items={grouped[cat]} 
                   selected={selected} 
                   toggle={toggle} 
+                  selectAll={selectAll}
+                  deselectAll={deselectAll}
                 />
               ))}
             </div>
