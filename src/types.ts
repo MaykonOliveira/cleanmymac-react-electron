@@ -1,5 +1,6 @@
 export type ItemType = 'file' | 'directory'
 export type CleanupCategory = 'Cache' | 'Logs' | 'Temporary' | 'Old Downloads' | 'Browser Cache' | 'App Support'
+export type ScanProfile = 'quick' | 'safe' | 'complete'
 
 export interface CategoryInfo {
   id: CleanupCategory
@@ -17,10 +18,30 @@ export interface CleanupItem {
   lastModified?: number
 }
 
+export interface SkippedScanTarget {
+  category: CleanupCategory
+  path: string
+  reason: string
+}
+
+export interface ScanResult {
+  items: CleanupItem[]
+  skipped: SkippedScanTarget[]
+}
+
+export interface ScanSettings {
+  authorizedDirectories: string[]
+  scanProfile: ScanProfile
+}
+
 declare global {
   interface Window {
     cleaner?: {
-      scanAll: () => Promise<CleanupItem[]>
+      scanAll: () => Promise<ScanResult>
+      getScanSettings: () => Promise<ScanSettings>
+      addAuthorizedDirectory: () => Promise<ScanSettings | null>
+      removeAuthorizedDirectory: (path: string) => Promise<ScanSettings>
+      setScanProfile: (profile: ScanProfile) => Promise<ScanSettings>
       deleteItems: (paths: string[]) => Promise<{ deleted: number, failed: { path: string, message: string }[] }>
       onScanProgress: (cb: (progress: number) => void) => () => void
     }
@@ -63,4 +84,3 @@ export const CATEGORY_INFO: Record<CleanupCategory, CategoryInfo> = {
 export const CATEGORY_ORDER: CleanupCategory[] = [
   'Cache', 'Logs', 'Temporary', 'Old Downloads', 'Browser Cache', 'App Support'
 ]
-
