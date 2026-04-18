@@ -1,5 +1,4 @@
 const { ipcMain, shell } = require('electron')
-const sudo = require('sudo-prompt')
 const { scanAllCategories } = require('./scanners.cjs')
 
 function registerIpcHandlers(getWindow) {
@@ -11,30 +10,27 @@ function registerIpcHandlers(getWindow) {
     return items
   })
 
-  ipcMain.handle('delete-items', async (_evt, paths) => {
-    let deleted = 0, failed = 0
-    for (const p of paths) {
+  ipcMain.handle('delete-items', async (_evt, paths = []) => {
+    const safePaths = Array.isArray(paths) ? paths.filter((p) => typeof p === 'string') : []
+    let deleted = 0
+    const failed = []
+
+    for (const p of safePaths) {
       try {
         await shell.trashItem(p)
         deleted++
-      } catch (e) {
-        try {
-          await new Promise((resolve, reject) => {
-            const options = { name: 'CleanMyMac Pro (React)' }
-            sudo.exec(`rm -rf "${p.replace(/"/g, '\\"')}"`, options, (error) => {
-              if (error) reject(error); else resolve()
-            })
-          })
-          deleted++
-        } catch {
-          failed++
-        }
+      } catch (error) {
+        failed.push({
+          path: p,
+          message: error instanceof Error
+            ? error.message
+            : 'Não foi possível mover para a Lixeira. O sistema bloqueou esta remoção.'
+        })
       }
     }
+
     return { deleted, failed }
   })
 }
 
 module.exports = { registerIpcHandlers }
-
-
