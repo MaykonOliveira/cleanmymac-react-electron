@@ -9,7 +9,7 @@
     "dev": "concurrently -k \"vite\" \"npm:build:electron:watch\" \"wait-on tcp:5173 file:dist-electron/main.js && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .\"",
     "build:react": "vite build",
     "start": "npm run build:electron && electron .",
-    "lint": "echo \"(add your linter here)\"",
+    "lint": "tsc --noEmit -p tsconfig.json",
     "build:all": "npm run build && electron-builder",
     "build:mas": "npm run build && electron-builder --mac mas",
     "build:mas-dev": "npm run build && electron-builder --mac mas-dev",
@@ -18,7 +18,11 @@
     "build:electron": "tsc -p electron/tsconfig.json",
     "build:electron:watch": "tsc -p electron/tsconfig.json --watch --preserveWatchOutput",
     "build": "npm run build:react && npm run build:electron",
-    "check:main-process": "node scripts/check-main-process-single-source.mjs"
+    "check:main-process": "node scripts/check-main-process-single-source.mjs",
+    "typecheck": "tsc --noEmit",
+    "test:smoke:ipc": "npm run build:electron && node --test dist-electron/core/__tests__/ipc-smoke.test.js",
+    "validate:build": "npm run build",
+    "ci": "npm run lint && npm run typecheck && npm run test:smoke:ipc"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.3",

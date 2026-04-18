@@ -85,3 +85,29 @@ This check validates:
 - Diretórios não analisados por permissão insuficiente são exibidos na interface, em vez de falha silenciosa.
 - A remoção continua usando envio para a Lixeira (`shell.trashItem`) sempre que permitido pelo sistema.
 - O app mantém Node desabilitado no renderer e expõe somente API mínima via `preload`.
+
+## Contribuição (fluxo obrigatório)
+
+1. Crie uma branch a partir da `main` com escopo claro (`feat/...`, `fix/...`, `chore/...`).
+2. Implemente a mudança com testes e documentação atualizada quando houver impacto de produto ou DX.
+3. Rode localmente antes de abrir PR:
+   ```bash
+   npm run lint
+   npm run typecheck
+   npm run test:smoke:ipc
+   npm run build
+   ```
+4. Abra o Pull Request com descrição objetiva, riscos, plano de rollback e evidências (logs/screenshot quando aplicável).
+
+### Critérios de aprovação
+
+Um PR só pode ser aprovado quando todos os itens abaixo estiverem atendidos:
+
+- CI verde em todas as etapas obrigatórias:
+  - `npm run check:main-process`
+  - `npm run ci`
+  - `npm run validate:build` (falha bloqueia merge)
+- Sem regressões de contratos IPC críticos (`scan-all` e `delete-items`) cobertos pelo smoke test.
+- Sem erros de lint e typecheck.
+- Mudanças com impacto funcional acompanhadas de atualização de README/guia operacional.
+- Pelo menos 1 revisão de código aprovada (owner ou mantenedor responsável).

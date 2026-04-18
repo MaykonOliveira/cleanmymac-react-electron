@@ -26,8 +26,8 @@ jobs:
       - name: Check main-process source strategy
         run: npm run check:main-process
 
-      - name: Build Electron main/preload
-        run: npm run build:electron
+      - name: Lint + typecheck + smoke tests
+        run: npm run ci
 
-      - name: Build React renderer
-        run: npm run build:react
+      - name: Build validation (mandatory)
+        run: npm run validate:build
