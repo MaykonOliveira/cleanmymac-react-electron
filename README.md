@@ -17,13 +17,62 @@ npm run dev
 
 This starts Vite (React) and Electron together. The app will open automatically.
 
-## Build a macOS DMG
+## Build channels (DMG / Mac App Store)
+
+### 1) Direct distribution (DMG)
 
 ```bash
-npm run make:mac
+npm run build:dmg
 ```
 
-The DMG will appear under `dist/` packaged by electron-builder.
+### 2) Mac App Store (production)
+
+```bash
+npm run build:mas
+```
+
+### 3) Mac App Store (development / TestFlight local signing checks)
+
+```bash
+npm run build:mas-dev
+```
+
+### Optional: build all defaults
+
+```bash
+npm run build:all
+```
+
+Artifacts are generated under `dist/` by `electron-builder`.
+
+## Signing & provisioning in CI (environment variables)
+
+The build is parameterized to avoid hardcoding identities/profiles:
+
+- `CSC_NAME`: macOS signing identity used by DMG, MAS and MAS-DEV.
+- `MAC_PROVISIONING_PROFILE`: provisioning profile path/identifier for direct mac build (if needed by your signing flow).
+- `MAS_PROVISIONING_PROFILE`: provisioning profile path/identifier for Mac App Store distribution.
+- `MAS_DEV_PROVISIONING_PROFILE`: provisioning profile path/identifier for Mac App Store development builds.
+
+Entitlements files used by MAS builds:
+
+- `build/entitlements.mas.plist`
+- `build/entitlements.mas.inherit.plist`
+
+## Metadata validation for App Store Connect consistency
+
+Before publishing, run:
+
+```bash
+npm run validate:metadata
+```
+
+This check validates:
+
+- `build.appId` format (reverse-DNS).
+- `version` in semver-compatible format.
+- `build.mac.category` against known Apple categories.
+- Category consistency across `mac`, `mas`, and `masDev` targets.
 
 ## Notes & Permissions
 
