@@ -1,38 +1,49 @@
-const { ipcMain, shell, dialog, app } = require('electron')
-const path = require('node:path')
-const fs = require('node:fs/promises')
-const { SCAN_PROFILES, scanAllCategories } = require('./scanners.cjs')
+import { ipcMain, shell, dialog, app, BrowserWindow } from 'electron'
+import path from 'node:path'
+import fs from 'node:fs/promises'
+import { SCAN_PROFILES, scanAllCategories } from './scanners.js'
 
 const DEFAULT_SETTINGS = {
   authorizedDirectories: [app.getPath('home')],
-  scanProfile: 'safe'
+  scanProfile: 'safe' as const
 }
 
-function getSettingsPath() {
+type ScanSettings = {
+  authorizedDirectories: string[]
+  scanProfile: keyof typeof SCAN_PROFILES
+}
+
+function getSettingsPath(): string {
   return path.join(app.getPath('userData'), 'scan-settings.json')
 }
 
-async function loadScanSettings() {
+async function loadScanSettings(): Promise<ScanSettings> {
   try {
     const raw = await fs.readFile(getSettingsPath(), 'utf-8')
-    const parsed = JSON.parse(raw)
+    const parsed: { authorizedDirectories?: unknown; scanProfile?: unknown } = JSON.parse(raw)
+
     const authorizedDirectories = Array.isArray(parsed.authorizedDirectories)
-      ? parsed.authorizedDirectories.filter((entry) => typeof entry === 'string')
+      ? parsed.authorizedDirectories.filter((entry): entry is string => typeof entry === 'string')
       : DEFAULT_SETTINGS.authorizedDirectories
-    const scanProfile = Object.hasOwn(SCAN_PROFILES, parsed.scanProfile) ? parsed.scanProfile : DEFAULT_SETTINGS.scanProfile
+
+    const scanProfile =
+      typeof parsed.scanProfile === 'string' && Object.hasOwn(SCAN_PROFILES, parsed.scanProfile)
+        ? (parsed.scanProfile as keyof typeof SCAN_PROFILES)
+        : DEFAULT_SETTINGS.scanProfile
+
     return { authorizedDirectories, scanProfile }
   } catch {
     return { ...DEFAULT_SETTINGS }
   }
 }
 
-async function saveScanSettings(settings) {
+async function saveScanSettings(settings: ScanSettings): Promise<ScanSettings> {
   await fs.mkdir(app.getPath('userData'), { recursive: true })
   await fs.writeFile(getSettingsPath(), JSON.stringify(settings, null, 2), 'utf-8')
   return settings
 }
 
-async function addAuthorizedDirectory() {
+async function addAuthorizedDirectory(): Promise<ScanSettings | null> {
   const result = await dialog.showOpenDialog({
     title: 'Selecionar pasta para análise',
     properties: ['openDirectory', 'createDirectory']
@@ -50,7 +61,7 @@ async function addAuthorizedDirectory() {
   })
 }
 
-function registerIpcHandlers(getWindow) {
+export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void {
   ipcMain.handle('scan-all', async () => {
     const win = getWindow()
     const settings = await loadScanSettings()
@@ -58,8 +69,8 @@ function registerIpcHandlers(getWindow) {
     return scanAllCategories({
       allowedRoots: settings.authorizedDirectories,
       profile: settings.scanProfile,
-      onProgress: (p) => {
-        if (win) win.webContents.send('scan-progress', p)
+      onProgress: (progress) => {
+        if (win) win.webContents.send('scan-progress', progress)
       }
     })
   })
@@ -68,7 +79,7 @@ function registerIpcHandlers(getWindow) {
 
   ipcMain.handle('scan-settings:add-directory', async () => addAuthorizedDirectory())
 
-  ipcMain.handle('scan-settings:remove-directory', async (_evt, targetPath) => {
+  ipcMain.handle('scan-settings:remove-directory', async (_event, targetPath: unknown) => {
     const settings = await loadScanSettings()
     if (typeof targetPath !== 'string') return settings
 
@@ -81,31 +92,34 @@ function registerIpcHandlers(getWindow) {
     })
   })
 
-  ipcMain.handle('scan-settings:set-profile', async (_evt, profile) => {
-    if (!Object.hasOwn(SCAN_PROFILES, profile)) return loadScanSettings()
+  ipcMain.handle('scan-settings:set-profile', async (_event, profile: unknown) => {
+    if (typeof profile !== 'string' || !Object.hasOwn(SCAN_PROFILES, profile)) {
+      return loadScanSettings()
+    }
 
     const settings = await loadScanSettings()
     return saveScanSettings({
       ...settings,
-      scanProfile: profile
+      scanProfile: profile as keyof typeof SCAN_PROFILES
     })
   })
 
-  ipcMain.handle('delete-items', async (_evt, paths = []) => {
-    const safePaths = Array.isArray(paths) ? paths.filter((p) => typeof p === 'string') : []
+  ipcMain.handle('delete-items', async (_event, paths: unknown) => {
+    const safePaths = Array.isArray(paths) ? paths.filter((p): p is string => typeof p === 'string') : []
     let deleted = 0
-    const failed = []
+    const failed: Array<{ path: string; message: string }> = []
 
-    for (const p of safePaths) {
+    for (const targetPath of safePaths) {
       try {
-        await shell.trashItem(p)
+        await shell.trashItem(targetPath)
         deleted++
       } catch (error) {
         failed.push({
-          path: p,
-          message: error instanceof Error
-            ? error.message
-            : 'Não foi possível mover para a Lixeira. O sistema bloqueou esta remoção.'
+          path: targetPath,
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Não foi possível mover para a Lixeira. O sistema bloqueou esta remoção.'
         })
       }
     }
@@ -113,5 +127,3 @@ function registerIpcHandlers(getWindow) {
     return { deleted, failed }
   })
 }
-
-module.exports = { registerIpcHandlers }
