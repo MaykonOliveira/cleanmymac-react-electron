@@ -74,8 +74,14 @@ This check validates:
 - `build.mac.category` against known Apple categories.
 - Category consistency across `mac`, `mas`, and `masDev` targets.
 
-## Notes & Permissions
+## Privacy, Permissions & Scan Scope
 
-- Some locations like `/Library/...` may require admin rights to delete. The app uses `trash` whenever possible.
-- For broader read access (e.g. full Application Support), you may need to grant **Full Disk Access** in System Settings → Privacy & Security.
-- This template avoids Node integration in the renderer and exposes only a minimal API via `preload` for better security.
+- O app agora só analisa diretórios autorizados pelo usuário em **“Selecionar pasta para análise”**.
+- As permissões autorizadas e o perfil de análise são persistidos em `userData/scan-settings.json` no sandbox do app.
+- Perfis de scan disponíveis:
+  - **Rápido**: categorias essenciais e menor superfície de leitura.
+  - **Seguro**: equilíbrio entre cobertura e redução de acessos negados.
+  - **Completo**: cobertura máxima das categorias suportadas.
+- Diretórios não analisados por permissão insuficiente são exibidos na interface, em vez de falha silenciosa.
+- A remoção continua usando envio para a Lixeira (`shell.trashItem`) sempre que permitido pelo sistema.
+- O app mantém Node desabilitado no renderer e expõe somente API mínima via `preload`.
