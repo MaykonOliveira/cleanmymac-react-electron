@@ -21,7 +21,7 @@ declare global {
   interface Window {
     cleaner?: {
       scanAll: () => Promise<CleanupItem[]>
-      deleteItems: (paths: string[]) => Promise<{ deleted: number, failed: number }>
+      deleteItems: (paths: string[]) => Promise<{ deleted: number, failed: { path: string, message: string }[] }>
       onScanProgress: (cb: (progress: number) => void) => () => void
     }
   }
@@ -63,5 +63,4 @@ export const CATEGORY_INFO: Record<CleanupCategory, CategoryInfo> = {
 export const CATEGORY_ORDER: CleanupCategory[] = [
   'Cache', 'Logs', 'Temporary', 'Old Downloads', 'Browser Cache', 'App Support'
 ]
-
 

@@ -9,12 +9,11 @@ function createMainWindow(isDev) {
             preload: path.join(__dirname, '..', 'preload.cjs'),
             contextIsolation: true,
             nodeIntegration: false,
-            sandbox: false
+            sandbox: true
         }
     })
     return win
 }
 
 module.exports = { createMainWindow }
-
 

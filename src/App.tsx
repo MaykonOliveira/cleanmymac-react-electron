@@ -50,7 +50,20 @@ export default function App() {
     const ok = confirm(`Tem certeza que deseja deletar ${selectedList.length} itens?\n\nEspaço a ser liberado: ${formatBytes(selectedSize)}`)
     if (!ok) return
     const { deleted, failed } = await window.cleaner.deleteItems(selectedList.map(i => i.path))
-    alert(`Limpeza concluída. Removidos: ${deleted}, falhas: ${failed}.`)
+    if (failed.length > 0) {
+      const details = failed
+        .slice(0, 3)
+        .map((entry) => `• ${entry.path}\n  Motivo: ${entry.message}`)
+        .join('\n\n')
+      const extra = failed.length > 3 ? `\n\n...e mais ${failed.length - 3} item(ns) com restrição do sistema.` : ''
+      alert(
+        `Limpeza parcial concluída.\n\nRemovidos: ${deleted}\nBloqueados pelo sistema: ${failed.length}\n\n` +
+        'Alguns arquivos não podem ser removidos sem permissões adicionais ou porque estão protegidos pelo macOS.\n\n' +
+        `${details}${extra}`
+      )
+    } else {
+      alert(`Limpeza concluída com sucesso. Removidos: ${deleted}.`)
+    }
     // Remove from local state
     const kept = items.filter(i => !selected[i.id])
     setItems(kept)
@@ -194,4 +207,3 @@ export default function App() {
     </div>
   )
 }
-
