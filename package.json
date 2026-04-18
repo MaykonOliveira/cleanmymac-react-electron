@@ -8,10 +8,13 @@
   "scripts": {
     "dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .\"",
     "build:react": "vite build",
-    "build": "vite build && electron-builder",
     "start": "electron .",
     "lint": "echo \"(add your linter here)\"",
-    "make:mac": "vite build && electron-builder --mac"
+    "build:all": "vite build && electron-builder",
+    "build:mas": "vite build && electron-builder --mac mas",
+    "build:mas-dev": "vite build && electron-builder --mac mas-dev",
+    "build:dmg": "vite build && electron-builder --mac dmg",
+    "validate:metadata": "node scripts/validate-app-store-metadata.mjs"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.3",
@@ -60,6 +63,27 @@
       "target": [
         "dmg"
       ],
+      "category": "public.app-category.utilities",
+      "identity": "${env.CSC_NAME}",
+      "provisioningProfile": "${env.MAC_PROVISIONING_PROFILE}",
+      "hardenedRuntime": false,
+      "entitlements": "build/entitlements.mas.plist",
+      "entitlementsInherit": "build/entitlements.mas.inherit.plist"
+    },
+    "mas": {
+      "type": "distribution",
+      "identity": "${env.CSC_NAME}",
+      "provisioningProfile": "${env.MAS_PROVISIONING_PROFILE}",
+      "entitlements": "build/entitlements.mas.plist",
+      "entitlementsInherit": "build/entitlements.mas.inherit.plist",
+      "category": "public.app-category.utilities"
+    },
+    "masDev": {
+      "type": "development",
+      "identity": "${env.CSC_NAME}",
+      "provisioningProfile": "${env.MAS_DEV_PROVISIONING_PROFILE}",
+      "entitlements": "build/entitlements.mas.plist",
+      "entitlementsInherit": "build/entitlements.mas.inherit.plist",
       "category": "public.app-category.utilities"
     }
   }
