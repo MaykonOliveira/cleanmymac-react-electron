@@ -4,6 +4,7 @@ export type ScanProfile = 'quick' | 'safe' | 'complete'
 export type RiskLevel = 'low' | 'medium' | 'high'
 export type CleanupPreset = 'conservative' | 'balanced' | 'aggressive'
 export type ReminderFrequency = 'off' | 'weekly' | 'monthly'
+export type TrayAction = 'scan-quick' | 'scan-safe' | 'scan-complete' | 'reminder-weekly' | 'reminder-monthly' | 'toggle-theme'
 
 export interface CategoryInfo {
   id: CleanupCategory
@@ -103,6 +104,7 @@ declare global {
       deleteItems: (paths: string[]) => Promise<{ deleted: number, failed: { path: string, message: string }[] }>
       onScanProgress: (cb: (progress: number) => void) => () => void
       onReminder: (cb: (payload: { frequency: ReminderFrequency; dueAt: number }) => void) => () => void
+      onTrayAction: (cb: (action: TrayAction) => void) => () => void
     }
   }
 }

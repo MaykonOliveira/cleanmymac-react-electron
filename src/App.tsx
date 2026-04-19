@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { CleanupCategory, CleanupInsights, CleanupItem, CATEGORY_ORDER, CleanupPreset, ReminderFrequency, ScanProfile, SkippedScanTarget } from './types'
+import { CleanupCategory, CleanupInsights, CleanupItem, CATEGORY_ORDER, CleanupPreset, ReminderFrequency, ScanProfile, SkippedScanTarget, TrayAction } from './types'
 import { Header } from './components/Header'
 import { Sidebar } from './components/Sidebar'
 import { CategorySection } from './components/CategorySection'
@@ -59,6 +59,48 @@ export default function App() {
       const dueDate = new Date(payload.dueAt).toLocaleDateString('pt-BR')
       alert(`Lembrete local: sua análise ${payload.frequency === 'weekly' ? 'semanal' : 'mensal'} está pendente desde ${dueDate}.`)
     })
+    return () => off && off()
+  }, [])
+
+  useEffect(() => {
+    if (!window.cleaner) return
+
+    const applyTrayAction = async (action: TrayAction) => {
+      if (action === 'scan-quick') {
+        await handleProfileChange('quick')
+        await handleScan()
+        return
+      }
+
+      if (action === 'scan-safe') {
+        await handleProfileChange('safe')
+        await handleScan()
+        return
+      }
+
+      if (action === 'scan-complete') {
+        await handleProfileChange('complete')
+        await handleScan()
+        return
+      }
+
+      if (action === 'reminder-weekly') {
+        await handleReminderChange('weekly')
+        return
+      }
+
+      if (action === 'reminder-monthly') {
+        await handleReminderChange('monthly')
+        return
+      }
+
+      document.documentElement.classList.toggle('dark')
+    }
+
+    const off = window.cleaner.onTrayAction((action) => {
+      void applyTrayAction(action)
+    })
+
     return () => off && off()
   }, [])
 
