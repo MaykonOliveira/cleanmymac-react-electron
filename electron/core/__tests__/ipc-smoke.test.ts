@@ -2,19 +2,39 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createIpcHandlers, type ScanSettings } from '../ipc-handlers.js'
 
+function buildSettings(): ScanSettings {
+  return {
+    authorizedDirectories: ['/Users/dev'],
+    scanProfile: 'safe',
+    reminder: {
+      frequency: 'off'
+    },
+    metrics: {
+      enabled: false,
+      totals: {
+        scansStarted: 0,
+        scansCompleted: 0,
+        cleanActions: 0,
+        itemsSelected: 0,
+        itemsDeleted: 0
+      },
+      timeline: {}
+    }
+  }
+}
+
 test('IPC smoke: scan-all envia progresso e retorna itens', async () => {
   const progressEvents: number[] = []
-  const settings: ScanSettings = {
-    authorizedDirectories: ['/Users/dev'],
-    scanProfile: 'safe'
-  }
+  const settings = buildSettings()
 
   const handlers = createIpcHandlers({
     getHomePath: () => '/Users/dev',
     getWindow: () => ({
       webContents: {
         send: (_channel, payload) => {
-          progressEvents.push(payload)
+          if (typeof payload === 'number') {
+            progressEvents.push(payload)
+          }
         }
       }
     }),
@@ -24,11 +44,24 @@ test('IPC smoke: scan-all envia progresso e retorna itens', async () => {
     runScanAllCategories: async ({ onProgress } = {}) => {
       onProgress?.(0.5)
       return {
-        items: [{ id: '1', name: 'file', path: '/tmp/file', size: 42, type: 'file', category: 'Cache' }],
+        items: [
+          {
+            id: '1',
+            name: 'file',
+            path: '/tmp/file',
+            size: 42,
+            type: 'file',
+            category: 'Cache',
+            safetyScore: 90,
+            riskLevel: 'low',
+            recommendationReasons: ['test']
+          }
+        ],
         skipped: []
       }
     },
-    trashItem: async () => undefined
+    trashItem: async () => undefined,
+    onSettingsUpdated: () => undefined
   })
 
   const result = await handlers.scanAll()
@@ -43,7 +76,7 @@ test('IPC smoke: delete-items contabiliza sucesso e falhas', async () => {
   const handlers = createIpcHandlers({
     getHomePath: () => '/Users/dev',
     getWindow: () => null,
-    loadScanSettings: async () => ({ authorizedDirectories: ['/Users/dev'], scanProfile: 'safe' }),
+    loadScanSettings: async () => buildSettings(),
     saveScanSettings: async (next) => next,
     addAuthorizedDirectory: async () => null,
     trashItem: async (targetPath) => {
@@ -51,7 +84,8 @@ test('IPC smoke: delete-items contabiliza sucesso e falhas', async () => {
       if (targetPath.includes('locked')) {
         throw new Error('blocked')
       }
-    }
+    },
+    onSettingsUpdated: () => undefined
   })
 
   const result = await handlers.deleteItems(null, ['/tmp/a', '/tmp/locked', 123])
