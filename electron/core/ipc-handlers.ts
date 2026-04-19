@@ -11,12 +11,20 @@ export type LocalMetrics = {
     cleanActions: number
     itemsSelected: number
     itemsDeleted: number
+    bytesDeleted: number
   }
   timeline: {
     firstScanAt?: number
     lastScanAt?: number
     lastCleanAt?: number
   }
+  history: Array<{
+    at: number
+    deletedCount: number
+    failedCount: number
+    deletedBytes: number
+    deletedByCategory: Partial<Record<(typeof SCAN_PROFILES)[keyof typeof SCAN_PROFILES][number], number>>
+  }>
 }
 
 export type ReminderSettings = {
@@ -45,9 +53,11 @@ export const DEFAULT_SETTINGS: ScanSettings = {
       scansCompleted: 0,
       cleanActions: 0,
       itemsSelected: 0,
-      itemsDeleted: 0
+      itemsDeleted: 0,
+      bytesDeleted: 0
     },
-    timeline: {}
+    timeline: {},
+    history: []
   }
 }
 
@@ -244,16 +254,50 @@ export function createIpcHandlers(deps: IpcHandlerDependencies) {
 
       if (eventName === 'clean_completed') {
         const deletedCount = typeof safePayload.deletedCount === 'number' ? Math.max(0, Math.floor(safePayload.deletedCount)) : 0
+        const failedCount = typeof safePayload.failedCount === 'number' ? Math.max(0, Math.floor(safePayload.failedCount)) : 0
+        const deletedBytes = typeof safePayload.deletedBytes === 'number' ? Math.max(0, Math.floor(safePayload.deletedBytes)) : 0
+        const deletedByCategory = safePayload.deletedByCategory && typeof safePayload.deletedByCategory === 'object'
+          ? safePayload.deletedByCategory as Record<string, unknown>
+          : {}
+        const normalizedByCategory = Object.entries(deletedByCategory).reduce<Record<string, number>>((acc, [key, value]) => {
+          if (typeof value === 'number' && value > 0) acc[key] = Math.floor(value)
+          return acc
+        }, {})
+
         updated = withUpdatedMetricTotals(updated, (metrics) => ({
           ...metrics,
           totals: {
             ...metrics.totals,
-            itemsDeleted: metrics.totals.itemsDeleted + deletedCount
-          }
+            itemsDeleted: metrics.totals.itemsDeleted + deletedCount,
+            bytesDeleted: metrics.totals.bytesDeleted + deletedBytes
+          },
+          history: [
+            {
+              at: Date.now(),
+              deletedCount,
+              failedCount,
+              deletedBytes,
+              deletedByCategory: normalizedByCategory
+            },
+            ...metrics.history
+          ].slice(0, 30)
         }))
       }
 
       await deps.saveScanSettings(updated)
+    },
+
+    getCleanupInsights: async () => {
+      const settings = await deps.loadScanSettings()
+      return {
+        totals: {
+          cleanActions: settings.metrics.totals.cleanActions,
+          itemsDeleted: settings.metrics.totals.itemsDeleted,
+          bytesDeleted: settings.metrics.totals.bytesDeleted
+        },
+        timeline: settings.metrics.timeline,
+        recentRuns: settings.metrics.history.slice(0, 5)
+      }
     },
 
     markReminderSent: async (): Promise<void> => {

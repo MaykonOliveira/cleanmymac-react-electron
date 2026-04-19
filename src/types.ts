@@ -43,12 +43,36 @@ export interface LocalMetricsSettings {
     cleanActions: number
     itemsSelected: number
     itemsDeleted: number
+    bytesDeleted: number
   }
   timeline: {
     firstScanAt?: number
     lastScanAt?: number
     lastCleanAt?: number
   }
+  history: CleanupRunSummary[]
+}
+
+export interface CleanupRunSummary {
+  at: number
+  deletedCount: number
+  failedCount: number
+  deletedBytes: number
+  deletedByCategory: Partial<Record<CleanupCategory, number>>
+}
+
+export interface CleanupInsights {
+  totals: {
+    cleanActions: number
+    itemsDeleted: number
+    bytesDeleted: number
+  }
+  timeline: {
+    firstScanAt?: number
+    lastScanAt?: number
+    lastCleanAt?: number
+  }
+  recentRuns: CleanupRunSummary[]
 }
 
 export interface ReminderSettings {
@@ -75,6 +99,7 @@ declare global {
       setReminderFrequency: (frequency: ReminderFrequency) => Promise<ScanSettings>
       setMetricsOptIn: (enabled: boolean) => Promise<ScanSettings>
       trackMetricEvent: (eventName: string, payload?: Record<string, unknown>) => Promise<void>
+      getCleanupInsights: () => Promise<CleanupInsights>
       deleteItems: (paths: string[]) => Promise<{ deleted: number, failed: { path: string, message: string }[] }>
       onScanProgress: (cb: (progress: number) => void) => () => void
       onReminder: (cb: (payload: { frequency: ReminderFrequency; dueAt: number }) => void) => () => void

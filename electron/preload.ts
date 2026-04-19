@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('cleaner', {
   setReminderFrequency: (frequency: string) => ipcRenderer.invoke('scan-settings:set-reminder-frequency', frequency),
   setMetricsOptIn: (enabled: boolean) => ipcRenderer.invoke('metrics:set-opt-in', enabled),
   trackMetricEvent: (eventName: string, payload?: Record<string, unknown>) => ipcRenderer.invoke('metrics:track-event', eventName, payload),
+  getCleanupInsights: () => ipcRenderer.invoke('metrics:get-cleanup-insights'),
   deleteItems: (paths: string[]) => ipcRenderer.invoke(
     'delete-items',
     Array.isArray(paths) ? paths.filter((p) => typeof p === 'string') : []

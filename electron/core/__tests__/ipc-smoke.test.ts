@@ -16,9 +16,11 @@ function buildSettings(): ScanSettings {
         scansCompleted: 0,
         cleanActions: 0,
         itemsSelected: 0,
-        itemsDeleted: 0
+        itemsDeleted: 0,
+        bytesDeleted: 0
       },
-      timeline: {}
+      timeline: {},
+      history: []
     }
   }
 }
