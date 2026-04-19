@@ -6,7 +6,7 @@ export function createMainWindow(): BrowserWindow {
     width: 1200,
     height: 800,
     webPreferences: {
-      preload: path.join(process.cwd(), 'dist-electron', 'preload.js'),
+      preload: path.join(process.cwd(), 'dist-electron', 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true

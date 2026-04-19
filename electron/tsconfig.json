@@ -12,6 +12,6 @@
     "declaration": false,
     "types": ["node"]
   },
-  "include": ["./**/*.ts"],
+  "include": ["./**/*.ts", "./**/*.cts"],
   "exclude": ["../src"]
 }
