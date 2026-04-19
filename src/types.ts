@@ -1,6 +1,9 @@
 export type ItemType = 'file' | 'directory'
 export type CleanupCategory = 'Cache' | 'Logs' | 'Temporary' | 'Old Downloads' | 'Browser Cache' | 'App Support'
 export type ScanProfile = 'quick' | 'safe' | 'complete'
+export type RiskLevel = 'low' | 'medium' | 'high'
+export type CleanupPreset = 'conservative' | 'balanced' | 'aggressive'
+export type ReminderFrequency = 'off' | 'weekly' | 'monthly'
 
 export interface CategoryInfo {
   id: CleanupCategory
@@ -16,6 +19,9 @@ export interface CleanupItem {
   type: ItemType
   category: CleanupCategory
   lastModified?: number
+  safetyScore: number
+  riskLevel: RiskLevel
+  recommendationReasons: string[]
 }
 
 export interface SkippedScanTarget {
@@ -29,9 +35,33 @@ export interface ScanResult {
   skipped: SkippedScanTarget[]
 }
 
+export interface LocalMetricsSettings {
+  enabled: boolean
+  totals: {
+    scansStarted: number
+    scansCompleted: number
+    cleanActions: number
+    itemsSelected: number
+    itemsDeleted: number
+  }
+  timeline: {
+    firstScanAt?: number
+    lastScanAt?: number
+    lastCleanAt?: number
+  }
+}
+
+export interface ReminderSettings {
+  frequency: ReminderFrequency
+  nextReminderAt?: number
+  lastReminderSentAt?: number
+}
+
 export interface ScanSettings {
   authorizedDirectories: string[]
   scanProfile: ScanProfile
+  reminder: ReminderSettings
+  metrics: LocalMetricsSettings
 }
 
 declare global {
@@ -42,8 +72,12 @@ declare global {
       addAuthorizedDirectory: () => Promise<ScanSettings | null>
       removeAuthorizedDirectory: (path: string) => Promise<ScanSettings>
       setScanProfile: (profile: ScanProfile) => Promise<ScanSettings>
+      setReminderFrequency: (frequency: ReminderFrequency) => Promise<ScanSettings>
+      setMetricsOptIn: (enabled: boolean) => Promise<ScanSettings>
+      trackMetricEvent: (eventName: string, payload?: Record<string, unknown>) => Promise<void>
       deleteItems: (paths: string[]) => Promise<{ deleted: number, failed: { path: string, message: string }[] }>
       onScanProgress: (cb: (progress: number) => void) => () => void
+      onReminder: (cb: (payload: { frequency: ReminderFrequency; dueAt: number }) => void) => () => void
     }
   }
 }

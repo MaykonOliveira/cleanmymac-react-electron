@@ -1,7 +1,7 @@
 import React from 'react'
 import { CleanupCategory, CleanupItem, CATEGORY_INFO } from '../types'
 import { ItemRow } from './ItemRow'
-import { FolderOpen, Info, CheckSquare, Square } from 'lucide-react'
+import { FolderOpen, Info, CheckSquare, Square, ShieldAlert, ShieldCheck, ShieldQuestion } from 'lucide-react'
 import { formatBytes } from '../utils/format'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 
@@ -14,7 +14,7 @@ export function CategorySection({ category, items, selected, toggle, selectAll, 
   deselectAll?: (category: CleanupCategory) => void
 }) {
   const categoryInfo = CATEGORY_INFO[category]
-  
+
   if (!items || items.length === 0) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
@@ -30,15 +30,22 @@ export function CategorySection({ category, items, selected, toggle, selectAll, 
       </div>
     )
   }
-  
+
   const selectedCount = items.filter(item => selected[item.id]).length
   const totalSize = items.reduce((acc, item) => acc + item.size, 0)
   const selectedSize = items.filter(item => selected[item.id]).reduce((acc, item) => acc + item.size, 0)
-  
+  const avgSafety = Math.round(items.reduce((acc, item) => acc + item.safetyScore, 0) / items.length)
+  const riskCounts = items.reduce(
+    (acc, item) => {
+      acc[item.riskLevel] += 1
+      return acc
+    },
+    { low: 0, medium: 0, high: 0 }
+  )
+
   return (
     <TooltipProvider>
       <div className="space-y-4 sm:space-y-6 flex-1 flex flex-col h-0">
-        {/* Header da Categoria */}
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-blue-200 dark:border-blue-700">
           <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
             <div className="flex items-center space-x-3 sm:space-x-4">
@@ -59,7 +66,7 @@ export function CategorySection({ category, items, selected, toggle, selectAll, 
                     </TooltipContent>
                   </Tooltip>
                 </div>
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 text-sm">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 text-sm">
                   <div className="space-y-1">
                     <p className="text-gray-500 dark:text-gray-400 font-medium text-xs sm:text-sm">Total de Itens</p>
                     <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">{items.length}</p>
@@ -67,6 +74,10 @@ export function CategorySection({ category, items, selected, toggle, selectAll, 
                   <div className="space-y-1">
                     <p className="text-gray-500 dark:text-gray-400 font-medium text-xs sm:text-sm">Tamanho Total</p>
                     <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">{formatBytes(totalSize)}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-gray-500 dark:text-gray-400 font-medium text-xs sm:text-sm">Score Médio</p>
+                    <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">{avgSafety}/100</p>
                   </div>
                   {selectedCount > 0 && (
                     <div className="space-y-1 col-span-2 lg:col-span-1">
@@ -77,10 +88,20 @@ export function CategorySection({ category, items, selected, toggle, selectAll, 
                     </div>
                   )}
                 </div>
+                <div className="flex flex-wrap gap-2 mt-3 text-xs">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 font-medium">
+                    <ShieldCheck className="w-3 h-3" /> Baixo: {riskCounts.low}
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 font-medium">
+                    <ShieldQuestion className="w-3 h-3" /> Médio: {riskCounts.medium}
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 font-medium">
+                    <ShieldAlert className="w-3 h-3" /> Alto: {riskCounts.high}
+                  </span>
+                </div>
               </div>
             </div>
-            
-            {/* Ações */}
+
             {(selectAll || deselectAll) && (
               <div className="flex items-center space-x-2 sm:space-x-3 flex-wrap">
                 {selectedCount < items.length && selectAll && (
@@ -100,7 +121,7 @@ export function CategorySection({ category, items, selected, toggle, selectAll, 
                     </TooltipContent>
                   </Tooltip>
                 )}
-                
+
                 {selectedCount > 0 && deselectAll && (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -122,8 +143,7 @@ export function CategorySection({ category, items, selected, toggle, selectAll, 
             )}
           </div>
         </div>
-        
-        {/* Lista de Arquivos */}
+
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex-1 flex flex-col h-0">
           <div className="p-3 sm:p-4 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
             <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Arquivos Encontrados</h2>
@@ -140,5 +160,3 @@ export function CategorySection({ category, items, selected, toggle, selectAll, 
     </TooltipProvider>
   )
 }
-
-

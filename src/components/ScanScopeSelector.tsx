@@ -1,6 +1,6 @@
 import React from 'react'
-import { ScanProfile } from '../types'
-import { Shield, FolderPlus, Trash2 } from 'lucide-react'
+import { ReminderFrequency, ScanProfile } from '../types'
+import { Shield, FolderPlus, Trash2, CalendarClock, BarChart3 } from 'lucide-react'
 
 const PROFILE_OPTIONS: { value: ScanProfile, label: string, description: string }[] = [
   { value: 'quick', label: 'Rápido', description: 'Menos categorias e menor superfície de leitura.' },
@@ -8,19 +8,33 @@ const PROFILE_OPTIONS: { value: ScanProfile, label: string, description: string 
   { value: 'complete', label: 'Completo', description: 'Mais categorias, pode exigir permissões adicionais.' }
 ]
 
+const REMINDER_OPTIONS: { value: ReminderFrequency; label: string }[] = [
+  { value: 'off', label: 'Desativado' },
+  { value: 'weekly', label: 'Semanal' },
+  { value: 'monthly', label: 'Mensal' }
+]
+
 export function ScanScopeSelector({
   profile,
   directories,
+  reminderFrequency,
+  metricsEnabled,
   onProfileChange,
   onAddDirectory,
   onRemoveDirectory,
+  onReminderFrequencyChange,
+  onMetricsOptInChange,
   disabled
 }: {
   profile: ScanProfile
   directories: string[]
+  reminderFrequency: ReminderFrequency
+  metricsEnabled: boolean
   onProfileChange: (profile: ScanProfile) => void
   onAddDirectory: () => void
   onRemoveDirectory: (targetPath: string) => void
+  onReminderFrequencyChange: (frequency: ReminderFrequency) => void
+  onMetricsOptInChange: (enabled: boolean) => void
   disabled?: boolean
 }) {
   return (
@@ -72,6 +86,45 @@ export function ScanScopeSelector({
               </button>
             </div>
           ))}
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-4 pt-2 border-t border-gray-100 dark:border-gray-700">
+        <div>
+          <label className="text-xs text-gray-500 dark:text-gray-400 inline-flex items-center gap-1">
+            <CalendarClock className="w-3 h-3" />
+            Agendamento de análise
+          </label>
+          <select
+            value={reminderFrequency}
+            disabled={disabled}
+            onChange={(event) => onReminderFrequencyChange(event.target.value as ReminderFrequency)}
+            className="mt-1 w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-sm"
+          >
+            {REMINDER_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-xs text-gray-500 dark:text-gray-400 inline-flex items-center gap-1 mb-1">
+            <BarChart3 className="w-3 h-3" />
+            Métricas locais anônimas
+          </label>
+          <button
+            disabled={disabled}
+            onClick={() => onMetricsOptInChange(!metricsEnabled)}
+            className={`w-full text-left px-3 py-2 rounded-lg border text-sm transition-colors ${metricsEnabled
+              ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300'
+              : 'bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200'
+            }`}
+          >
+            {metricsEnabled ? 'Ativado (opt-in)' : 'Desativado'}
+          </button>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+            Guarda apenas contadores locais (scans, seleção, limpeza). Nenhum envio externo.
+          </p>
         </div>
       </div>
     </div>

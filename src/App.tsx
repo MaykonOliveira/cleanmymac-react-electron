@@ -1,11 +1,35 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { CleanupCategory, CleanupItem, CATEGORY_ORDER, ScanProfile, SkippedScanTarget } from './types'
+import { CleanupCategory, CleanupItem, CATEGORY_ORDER, CleanupPreset, ReminderFrequency, ScanProfile, SkippedScanTarget } from './types'
 import { Header } from './components/Header'
 import { Sidebar } from './components/Sidebar'
 import { CategorySection } from './components/CategorySection'
 import { ScanScopeSelector } from './components/ScanScopeSelector'
 import { formatBytes } from './utils/format'
 import { Search, Loader2, FolderOpen, ShieldAlert } from 'lucide-react'
+
+const CLEANUP_PRESETS: Array<{ id: CleanupPreset; label: string; description: string }> = [
+  {
+    id: 'conservative',
+    label: 'Conservador',
+    description: 'Seleciona apenas risco baixo (score >= 75).'
+  },
+  {
+    id: 'balanced',
+    label: 'Balanceado',
+    description: 'Seleciona risco baixo e médio seguro (score >= 55).'
+  },
+  {
+    id: 'aggressive',
+    label: 'Agressivo',
+    description: 'Seleciona tudo, exceto risco alto com score < 25.'
+  }
+]
+
+function shouldSelectByPreset(item: CleanupItem, preset: CleanupPreset): boolean {
+  if (preset === 'conservative') return item.riskLevel === 'low' && item.safetyScore >= 75
+  if (preset === 'balanced') return item.riskLevel !== 'high' && item.safetyScore >= 55
+  return !(item.riskLevel === 'high' && item.safetyScore < 25)
+}
 
 export default function App() {
   const [items, setItems] = useState<CleanupItem[]>([])
@@ -17,10 +41,22 @@ export default function App() {
   const [scanProfile, setScanProfile] = useState<ScanProfile>('safe')
   const [authorizedDirectories, setAuthorizedDirectories] = useState<string[]>([])
   const [skippedTargets, setSkippedTargets] = useState<SkippedScanTarget[]>([])
+  const [activePreset, setActivePreset] = useState<CleanupPreset | null>(null)
+  const [reminderFrequency, setReminderFrequency] = useState<ReminderFrequency>('off')
+  const [metricsEnabled, setMetricsEnabled] = useState(false)
 
   useEffect(() => {
     if (!window.cleaner) return
     const off = window.cleaner.onScanProgress((p) => setProgress(p))
+    return () => off && off()
+  }, [])
+
+  useEffect(() => {
+    if (!window.cleaner) return
+    const off = window.cleaner.onReminder((payload) => {
+      const dueDate = new Date(payload.dueAt).toLocaleDateString('pt-BR')
+      alert(`Lembrete local: sua análise ${payload.frequency === 'weekly' ? 'semanal' : 'mensal'} está pendente desde ${dueDate}.`)
+    })
     return () => off && off()
   }, [])
 
@@ -30,9 +66,11 @@ export default function App() {
       const settings = await window.cleaner.getScanSettings()
       setScanProfile(settings.scanProfile)
       setAuthorizedDirectories(settings.authorizedDirectories)
+      setReminderFrequency(settings.reminder.frequency)
+      setMetricsEnabled(settings.metrics.enabled)
     }
 
-    loadSettings()
+    void loadSettings()
   }, [])
 
   const totalSize = useMemo(() => items.reduce((acc, it) => acc + it.size, 0), [items])
@@ -47,6 +85,11 @@ export default function App() {
     return g
   }, [items])
 
+  useEffect(() => {
+    if (!window.cleaner || !metricsEnabled) return
+    void window.cleaner.trackMetricEvent('selection_changed', { selectedCount: selectedList.length })
+  }, [selectedList.length, metricsEnabled])
+
   async function handleScan() {
     if (!window.cleaner) return
     setIsScanning(true)
@@ -54,6 +97,7 @@ export default function App() {
     setSelected({})
     setProgress(0)
     setSkippedTargets([])
+    setActivePreset(null)
     const result = await window.cleaner.scanAll()
     setItems(result.items)
     setSkippedTargets(result.skipped)
@@ -66,6 +110,18 @@ export default function App() {
     const settings = await window.cleaner.setScanProfile(profile)
     setScanProfile(settings.scanProfile)
     setAuthorizedDirectories(settings.authorizedDirectories)
+  }
+
+  async function handleReminderChange(frequency: ReminderFrequency) {
+    if (!window.cleaner) return
+    const settings = await window.cleaner.setReminderFrequency(frequency)
+    setReminderFrequency(settings.reminder.frequency)
+  }
+
+  async function handleMetricsOptIn(enabled: boolean) {
+    if (!window.cleaner) return
+    const settings = await window.cleaner.setMetricsOptIn(enabled)
+    setMetricsEnabled(settings.metrics.enabled)
   }
 
   async function handleAddDirectory() {
@@ -83,12 +139,39 @@ export default function App() {
     setAuthorizedDirectories(settings.authorizedDirectories)
   }
 
+  function applyCleanupPreset(preset: CleanupPreset) {
+    const next: Record<string, boolean> = {}
+    for (const item of items) {
+      if (shouldSelectByPreset(item, preset)) {
+        next[item.id] = true
+      }
+    }
+    setSelected(next)
+    setActivePreset(preset)
+  }
+
   async function handleDelete() {
     if (!window.cleaner) return
     if (selectedList.length === 0) return
     const ok = confirm(`Tem certeza que deseja deletar ${selectedList.length} itens?\n\nEspaço a ser liberado: ${formatBytes(selectedSize)}`)
     if (!ok) return
+
+    if (metricsEnabled) {
+      await window.cleaner.trackMetricEvent('clean_triggered', {
+        selectedCount: selectedList.length,
+        selectedSize
+      })
+    }
+
     const { deleted, failed } = await window.cleaner.deleteItems(selectedList.map(i => i.path))
+
+    if (metricsEnabled) {
+      await window.cleaner.trackMetricEvent('clean_completed', {
+        deletedCount: deleted,
+        failedCount: failed.length
+      })
+    }
+
     if (failed.length > 0) {
       const details = failed
         .slice(0, 3)
@@ -106,6 +189,7 @@ export default function App() {
     const kept = items.filter(i => !selected[i.id])
     setItems(kept)
     setSelected({})
+    setActivePreset(null)
   }
 
   function toggle(id: string) {
@@ -119,6 +203,7 @@ export default function App() {
       for (const it of citems) next[it.id] = true
       return next
     })
+    setActivePreset(null)
   }
 
   function deselectAll(category: CleanupCategory) {
@@ -128,6 +213,7 @@ export default function App() {
       for (const it of citems) delete next[it.id]
       return next
     })
+    setActivePreset(null)
   }
 
   return (
@@ -172,11 +258,41 @@ export default function App() {
           <ScanScopeSelector
             profile={scanProfile}
             directories={authorizedDirectories}
+            reminderFrequency={reminderFrequency}
+            metricsEnabled={metricsEnabled}
             onProfileChange={handleProfileChange}
             onAddDirectory={handleAddDirectory}
             onRemoveDirectory={handleRemoveDirectory}
+            onReminderFrequencyChange={handleReminderChange}
+            onMetricsOptInChange={handleMetricsOptIn}
             disabled={isScanning}
           />
+
+          {items.length > 0 && (
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 mb-4">
+              <div className="text-xs font-semibold text-gray-500 dark:text-gray-300 mb-2">Presets de limpeza rápida</div>
+              <div className="flex flex-wrap gap-2">
+                {CLEANUP_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    onClick={() => applyCleanupPreset(preset.id)}
+                    className={`text-xs sm:text-sm px-3 py-1.5 rounded-lg border transition-colors ${activePreset === preset.id
+                      ? 'bg-blue-500 text-white border-blue-500'
+                      : 'bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    }`}
+                    title={preset.description}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+              {activePreset && (
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-2">
+                  Preset aplicado: {CLEANUP_PRESETS.find((p) => p.id === activePreset)?.description}
+                </p>
+              )}
+            </div>
+          )}
 
           {skippedTargets.length > 0 && !isScanning && (
             <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-4 mb-4">
@@ -246,11 +362,9 @@ export default function App() {
                   <div className="space-y-3 max-w-md">
                     <h3 className="text-xl sm:text-2xl font-semibold text-gray-800 dark:text-gray-200">Selecione uma categoria</h3>
                     <p className="text-gray-500 dark:text-gray-400 text-base sm:text-lg leading-relaxed">
-                      {sidebarOpen ? (
-                        'Clique em uma categoria na sidebar para visualizar os arquivos encontrados e gerenciar sua limpeza'
-                      ) : (
-                        'Abra a sidebar para selecionar uma categoria e visualizar os arquivos encontrados'
-                      )}
+                      {sidebarOpen
+                        ? 'Clique em uma categoria na sidebar para visualizar os arquivos encontrados e gerenciar sua limpeza'
+                        : 'Abra a sidebar para selecionar uma categoria e visualizar os arquivos encontrados'}
                     </p>
                   </div>
                 </div>

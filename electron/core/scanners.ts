@@ -13,6 +13,8 @@ export const SCAN_PROFILES = {
 type ScanProfile = keyof typeof SCAN_PROFILES
 export type CleanupCategory = (typeof SCAN_PROFILES)[ScanProfile][number]
 
+export type RiskLevel = 'low' | 'medium' | 'high'
+
 interface ScanItem {
   id: string
   name: string
@@ -21,6 +23,9 @@ interface ScanItem {
   type: 'file' | 'directory'
   category: CleanupCategory
   lastModified?: number
+  safetyScore: number
+  riskLevel: RiskLevel
+  recommendationReasons: string[]
 }
 
 interface SkippedDirectory {
@@ -39,6 +44,15 @@ interface ScanAllCategoriesOptions {
   onProgress?: (progress: number) => void
   allowedRoots?: string[]
   profile?: ScanProfile
+}
+
+const CATEGORY_BASE_SCORE: Record<CleanupCategory, number> = {
+  Cache: 88,
+  Logs: 86,
+  Temporary: 80,
+  'Old Downloads': 58,
+  'Browser Cache': 83,
+  'App Support': 42
 }
 
 function normalizePath(targetPath: string): string {
@@ -103,6 +117,74 @@ async function listDirectoryDetailed(dir: string) {
     }
   } catch (error) {
     return { entries: [], error }
+  }
+}
+
+function clampScore(value: number): number {
+  return Math.max(0, Math.min(100, Math.round(value)))
+}
+
+function buildSafetyAssessment(item: {
+  category: CleanupCategory
+  type: 'file' | 'directory'
+  size: number
+  lastModified?: number
+}): { safetyScore: number; riskLevel: RiskLevel; recommendationReasons: string[] } {
+  let score = CATEGORY_BASE_SCORE[item.category] ?? 50
+  const reasons: string[] = []
+
+  reasons.push(`Critério auditável: categoria ${item.category} inicia com score base ${score}/100.`)
+
+  if (item.type === 'directory') {
+    score -= 10
+    reasons.push('Diretório completo detectado: remoção impacta múltiplos arquivos (+risco).')
+  } else {
+    score += 4
+    reasons.push('Arquivo individual detectado: reversão e inspeção são mais simples (-risco).')
+  }
+
+  const sizeMb = item.size / (1024 * 1024)
+  if (sizeMb > 1024) {
+    score -= 20
+    reasons.push('Tamanho acima de 1 GB: provável conter dados relevantes (+risco).')
+  } else if (sizeMb > 200) {
+    score -= 12
+    reasons.push('Tamanho entre 200 MB e 1 GB: revisão manual recomendada (+risco moderado).')
+  } else if (sizeMb < 50) {
+    score += 6
+    reasons.push('Item pequeno (<50 MB): impacto potencial reduzido (-risco).')
+  }
+
+  if (item.lastModified) {
+    const ageMs = Date.now() - item.lastModified
+    const ageDays = ageMs / (24 * 60 * 60 * 1000)
+
+    if (ageDays >= 180) {
+      score += 16
+      reasons.push('Sem modificação há 180+ dias: forte sinal de obsolescência (-risco).')
+    } else if (ageDays >= 60) {
+      score += 9
+      reasons.push('Sem modificação há 60+ dias: provável baixa utilidade atual (-risco).')
+    } else if (ageDays <= 7) {
+      score -= 16
+      reasons.push('Modificado nos últimos 7 dias: potencialmente em uso ativo (+risco).')
+    }
+  } else {
+    reasons.push('Sem metadado de modificação: score mantém peso conservador.')
+  }
+
+  const clamped = clampScore(score)
+  let riskLevel: RiskLevel = 'medium'
+
+  if (clamped >= 75) riskLevel = 'low'
+  else if (clamped < 45) riskLevel = 'high'
+
+  reasons.push(`Score final ${clamped}/100 com nível de risco ${riskLevel.toUpperCase()}.`)
+
+  return {
+    safetyScore: clamped,
+    riskLevel,
+    recommendationReasons: reasons
   }
 }
 
@@ -172,6 +254,13 @@ async function scanGroup(
           continue
         }
 
+        const assessment = buildSafetyAssessment({
+          category,
+          type: entry.isDir ? 'directory' : 'file',
+          size,
+          lastModified: st.mtimeMs
+        })
+
         out.push({
           id: uuidv4(),
           name: entry.name,
@@ -179,7 +268,10 @@ async function scanGroup(
           size,
           type: entry.isDir ? 'directory' : 'file',
           category,
-          lastModified: st.mtimeMs
+          lastModified: st.mtimeMs,
+          safetyScore: assessment.safetyScore,
+          riskLevel: assessment.riskLevel,
+          recommendationReasons: assessment.recommendationReasons
         })
 
         processedItems++
@@ -195,7 +287,7 @@ async function scanGroup(
     processedDirs++
   }
 
-  out.sort((a, b) => b.size - a.size)
+  out.sort((a, b) => b.safetyScore - a.safetyScore || b.size - a.size)
   return { items: out, skipped }
 }
 
