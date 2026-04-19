@@ -22,7 +22,9 @@ function CategoryDropdown({
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors"
-        title="Opções da categoria"
+        aria-label={`Opções da categoria ${category}`}
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
       >
         <MoreVertical className="w-4 h-4" />
       </button>
@@ -33,8 +35,9 @@ function CategoryDropdown({
             className="fixed inset-0 z-10"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 top-6 z-20 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-1 w-44">
+          <div role="menu" className="absolute right-0 top-6 z-20 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-1 w-44">
             <button
+              role="menuitem"
               onClick={() => {
                 selectAll(category)
                 setIsOpen(false)
@@ -44,6 +47,7 @@ function CategoryDropdown({
               Selecionar todos
             </button>
             <button
+              role="menuitem"
               onClick={() => {
                 deselectAll(category)
                 setIsOpen(false)
@@ -95,7 +99,7 @@ export function Sidebar({
             <button
               onClick={onClose}
               className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              title="Ocultar sidebar"
+              aria-label="Ocultar painel lateral"
             >
               <X className="w-5 h-5" />
             </button>
@@ -166,13 +170,19 @@ export function Sidebar({
                   ? 'text-green-900 dark:text-green-100'
                   : 'text-gray-600 dark:text-gray-300'
                   }`}>
-                  {totalSelectedSize > 0 ? formatBytes(totalSelectedSize) : '0 bytes'}
+                  {totalSelectedSize > 0
+                    ? formatBytes(totalSelectedSize)
+                    : items.length > 0 ? 'Nenhum selecionado' : '—'
+                  }
                 </div>
                 <div className={`text-xs mt-1 ${totalSelectedSize > 0
                   ? 'text-green-600 dark:text-green-400'
                   : 'text-gray-500 dark:text-gray-400'
                   }`}>
-                  {totalSelectedItems} itens selecionados
+                  {totalSelectedItems > 0
+                    ? `${totalSelectedItems} ${totalSelectedItems === 1 ? 'item selecionado' : 'itens selecionados'}`
+                    : items.length > 0 ? 'Selecione itens para limpeza' : 'Execute uma análise'
+                  }
                 </div>
               </CardContent>
             </Card>

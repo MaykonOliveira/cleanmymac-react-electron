@@ -2,10 +2,11 @@ import React from 'react'
 import { Search, Trash2, Loader2, Menu } from 'lucide-react'
 import { ThemeToggle } from './theme-toggle'
 
-export function Header({ isScanning, onScan, canClean, onClean, sidebarOpen, onToggleSidebar }: { 
-  isScanning: boolean, 
-  onScan: () => void, 
-  canClean: boolean, 
+export function Header({ isScanning, isDeleting, onScan, canClean, onClean, sidebarOpen, onToggleSidebar }: {
+  isScanning: boolean,
+  isDeleting: boolean,
+  onScan: () => void,
+  canClean: boolean,
   onClean: () => void,
   sidebarOpen: boolean,
   onToggleSidebar: () => void
@@ -16,7 +17,8 @@ export function Header({ isScanning, onScan, canClean, onClean, sidebarOpen, onT
         <button
           onClick={onToggleSidebar}
           className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors lg:hidden"
-          title={sidebarOpen ? "Ocultar sidebar" : "Mostrar sidebar"}
+          aria-label={sidebarOpen ? "Ocultar painel lateral" : "Mostrar painel lateral"}
+          aria-expanded={sidebarOpen}
         >
           <Menu className="w-5 h-5" />
         </button>
@@ -24,7 +26,7 @@ export function Header({ isScanning, onScan, canClean, onClean, sidebarOpen, onT
           <button
             onClick={onToggleSidebar}
             className="hidden lg:flex p-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-            title="Mostrar sidebar"
+            aria-label="Mostrar painel lateral"
           >
             <Menu className="w-5 h-5" />
           </button>
@@ -61,13 +63,17 @@ export function Header({ isScanning, onScan, canClean, onClean, sidebarOpen, onT
           </button>
         )}
         {canClean && (
-          <button 
-            onClick={onClean} 
-            className="bg-red-500 hover:bg-red-600 text-white font-medium px-3 sm:px-6 py-2 sm:py-2.5 rounded-lg shadow-sm transition-colors flex items-center space-x-1 sm:space-x-2"
+          <button
+            onClick={onClean}
+            disabled={isDeleting}
+            className="bg-red-500 hover:bg-red-600 disabled:opacity-60 disabled:cursor-not-allowed text-white font-medium px-3 sm:px-6 py-2 sm:py-2.5 rounded-lg shadow-sm transition-colors flex items-center space-x-1 sm:space-x-2"
           >
-            <Trash2 className="w-4 h-4 flex-shrink-0" />
-            <span className="hidden sm:inline">Limpar Arquivos</span>
-            <span className="sm:hidden text-xs">Limpar</span>
+            {isDeleting
+              ? <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+              : <Trash2 className="w-4 h-4 flex-shrink-0" />
+            }
+            <span className="hidden sm:inline">{isDeleting ? 'Removendo...' : 'Limpar Arquivos'}</span>
+            <span className="sm:hidden text-xs">{isDeleting ? 'Removendo...' : 'Limpar'}</span>
           </button>
         )}
       </div>

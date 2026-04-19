@@ -2,6 +2,7 @@ import React from 'react'
 import { CleanupItem, RiskLevel } from '../types'
 import { formatBytes } from '../utils/format'
 import { Folder, File, Calendar, Check, ShieldAlert, ShieldCheck, ShieldQuestion } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 
 const RISK_UI: Record<RiskLevel, { label: string; className: string; icon: React.ReactNode }> = {
   low: {
@@ -38,14 +39,21 @@ export function ItemRow({ item, selected, toggle }: {
 
   return (
     <div
+      role="checkbox"
+      aria-checked={selected}
+      aria-label={`Selecionar ${item.name} (${formatBytes(item.size)})`}
+      tabIndex={0}
       className={`group flex flex-col gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg cursor-pointer transition-all duration-150 hover:bg-blue-50 dark:hover:bg-blue-900/20 ${
         selected ? 'bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-700' : 'bg-white dark:bg-gray-800 hover:shadow-sm'
       }`}
       onClick={() => toggle(item.id)}
+      onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(item.id) } }}
     >
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
         <div className="flex items-center gap-3 sm:gap-4 w-full sm:flex-1">
-          <div className={`flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6 rounded border-2 flex items-center justify-center transition-all ${
+          <div
+            aria-hidden="true"
+            className={`flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6 rounded border-2 flex items-center justify-center transition-all ${
             selected
               ? 'bg-blue-500 dark:bg-blue-600 border-blue-500 dark:border-blue-600'
               : 'border-gray-300 dark:border-gray-600 group-hover:border-blue-400 dark:group-hover:border-blue-500 bg-white dark:bg-gray-700'
@@ -66,8 +74,24 @@ export function ItemRow({ item, selected, toggle }: {
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100 truncate">{item.name}</div>
-            <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">{item.path}</div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100 truncate cursor-default">{item.name}</div>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-sm break-all">
+                  <p>{item.name}</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate cursor-default">{item.path}</div>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-sm break-all">
+                  <p>{item.path}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             {item.lastModified && (
               <div className="flex items-center space-x-1 text-xs text-gray-400 dark:text-gray-500 mt-1 sm:hidden">
                 <Calendar className="w-3 h-3" />
@@ -120,7 +144,7 @@ export function ItemRow({ item, selected, toggle }: {
         </span>
       </div>
 
-      <ul className="space-y-1 text-xs text-gray-600 dark:text-gray-300 pl-1">
+      <ul id={`reasons-${item.id}`} className="space-y-1 text-xs text-gray-600 dark:text-gray-300 pl-1">
         {visibleReasons.map((reason, index) => (
           <li key={`${item.id}-reason-${index}`} className="leading-relaxed">• {reason}</li>
         ))}
@@ -128,6 +152,8 @@ export function ItemRow({ item, selected, toggle }: {
       {item.recommendationReasons.length > 3 && (
         <button
           type="button"
+          aria-expanded={showAllReasons}
+          aria-controls={`reasons-${item.id}`}
           className="self-start text-xs text-blue-600 dark:text-blue-300 hover:underline"
           onClick={(event) => {
             event.stopPropagation()
