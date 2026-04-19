@@ -45,13 +45,31 @@ function normalizeSettings(parsed: unknown): ScanSettings {
         scansCompleted: candidate.metrics?.totals?.scansCompleted ?? 0,
         cleanActions: candidate.metrics?.totals?.cleanActions ?? 0,
         itemsSelected: candidate.metrics?.totals?.itemsSelected ?? 0,
-        itemsDeleted: candidate.metrics?.totals?.itemsDeleted ?? 0
+        itemsDeleted: candidate.metrics?.totals?.itemsDeleted ?? 0,
+        bytesDeleted: candidate.metrics?.totals?.bytesDeleted ?? 0
       },
       timeline: {
         firstScanAt: candidate.metrics?.timeline?.firstScanAt,
         lastScanAt: candidate.metrics?.timeline?.lastScanAt,
         lastCleanAt: candidate.metrics?.timeline?.lastCleanAt
-      }
+      },
+      history: Array.isArray(candidate.metrics?.history)
+        ? candidate.metrics.history
+          .filter((entry) => entry && typeof entry === 'object')
+          .map((entry) => {
+            const record = entry as Record<string, unknown>
+            return {
+              at: typeof record.at === 'number' ? record.at : Date.now(),
+              deletedCount: typeof record.deletedCount === 'number' ? Math.max(0, Math.floor(record.deletedCount)) : 0,
+              failedCount: typeof record.failedCount === 'number' ? Math.max(0, Math.floor(record.failedCount)) : 0,
+              deletedBytes: typeof record.deletedBytes === 'number' ? Math.max(0, Math.floor(record.deletedBytes)) : 0,
+              deletedByCategory: record.deletedByCategory && typeof record.deletedByCategory === 'object'
+                ? record.deletedByCategory as Record<string, number>
+                : {}
+            }
+          })
+          .slice(0, 30)
+        : []
     }
   }
 }
@@ -161,6 +179,7 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void
   ipcMain.handle('scan-settings:set-reminder-frequency', handlers.setReminderFrequency)
   ipcMain.handle('metrics:set-opt-in', handlers.setMetricsOptIn)
   ipcMain.handle('metrics:track-event', handlers.trackMetricEvent)
+  ipcMain.handle('metrics:get-cleanup-insights', handlers.getCleanupInsights)
   ipcMain.handle('delete-items', handlers.deleteItems)
 
   if (reminderInterval) clearInterval(reminderInterval)

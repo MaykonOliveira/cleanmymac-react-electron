@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { CleanupCategory, CleanupItem, CATEGORY_ORDER, CleanupPreset, ReminderFrequency, ScanProfile, SkippedScanTarget } from './types'
+import { CleanupCategory, CleanupInsights, CleanupItem, CATEGORY_ORDER, CleanupPreset, ReminderFrequency, ScanProfile, SkippedScanTarget } from './types'
 import { Header } from './components/Header'
 import { Sidebar } from './components/Sidebar'
 import { CategorySection } from './components/CategorySection'
 import { ScanScopeSelector } from './components/ScanScopeSelector'
+import { CleanupInsightsPanel } from './components/CleanupInsightsPanel'
 import { formatBytes } from './utils/format'
 import { Search, Loader2, FolderOpen, ShieldAlert } from 'lucide-react'
 
@@ -44,6 +45,7 @@ export default function App() {
   const [activePreset, setActivePreset] = useState<CleanupPreset | null>(null)
   const [reminderFrequency, setReminderFrequency] = useState<ReminderFrequency>('off')
   const [metricsEnabled, setMetricsEnabled] = useState(false)
+  const [cleanupInsights, setCleanupInsights] = useState<CleanupInsights | null>(null)
 
   useEffect(() => {
     if (!window.cleaner) return
@@ -68,6 +70,8 @@ export default function App() {
       setAuthorizedDirectories(settings.authorizedDirectories)
       setReminderFrequency(settings.reminder.frequency)
       setMetricsEnabled(settings.metrics.enabled)
+      const insights = await window.cleaner.getCleanupInsights()
+      setCleanupInsights(insights)
     }
 
     void loadSettings()
@@ -122,6 +126,8 @@ export default function App() {
     if (!window.cleaner) return
     const settings = await window.cleaner.setMetricsOptIn(enabled)
     setMetricsEnabled(settings.metrics.enabled)
+    const insights = await window.cleaner.getCleanupInsights()
+    setCleanupInsights(insights)
   }
 
   async function handleAddDirectory() {
@@ -164,13 +170,25 @@ export default function App() {
     }
 
     const { deleted, failed } = await window.cleaner.deleteItems(selectedList.map(i => i.path))
+    const failedPaths = new Set(failed.map((entry) => entry.path))
+    const deletedItems = selectedList.filter((item) => !failedPaths.has(item.path))
+    const deletedBytes = deletedItems.reduce((acc, item) => acc + item.size, 0)
+    const deletedByCategory = deletedItems.reduce<Partial<Record<CleanupCategory, number>>>((acc, item) => {
+      acc[item.category] = (acc[item.category] ?? 0) + item.size
+      return acc
+    }, {})
 
     if (metricsEnabled) {
       await window.cleaner.trackMetricEvent('clean_completed', {
         deletedCount: deleted,
-        failedCount: failed.length
+        failedCount: failed.length,
+        deletedBytes,
+        deletedByCategory
       })
     }
+
+    const insights = await window.cleaner.getCleanupInsights()
+    setCleanupInsights(insights)
 
     if (failed.length > 0) {
       const details = failed
@@ -267,6 +285,8 @@ export default function App() {
             onMetricsOptInChange={handleMetricsOptIn}
             disabled={isScanning}
           />
+
+          <CleanupInsightsPanel insights={cleanupInsights} />
 
           {items.length > 0 && (
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 mb-4">

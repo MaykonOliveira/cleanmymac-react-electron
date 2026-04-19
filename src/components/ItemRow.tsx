@@ -26,7 +26,15 @@ export function ItemRow({ item, selected, toggle }: {
   selected: boolean,
   toggle: (id: string) => void
 }) {
+  const [showAllReasons, setShowAllReasons] = React.useState(false)
   const riskUi = RISK_UI[item.riskLevel]
+  const visibleReasons = showAllReasons ? item.recommendationReasons : item.recommendationReasons.slice(0, 3)
+
+  const recommendationLabel = item.riskLevel === 'low'
+    ? 'Recomendado para limpeza'
+    : item.riskLevel === 'medium'
+      ? 'Revisão manual sugerida'
+      : 'Atenção: alto risco'
 
   return (
     <div
@@ -107,13 +115,28 @@ export function ItemRow({ item, selected, toggle }: {
         <span className="inline-flex items-center px-2.5 py-1 rounded-full font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
           Score de segurança: {item.safetyScore}/100
         </span>
+        <span className="inline-flex items-center px-2.5 py-1 rounded-full font-medium bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300">
+          {recommendationLabel}
+        </span>
       </div>
 
       <ul className="space-y-1 text-xs text-gray-600 dark:text-gray-300 pl-1">
-        {item.recommendationReasons.slice(0, 3).map((reason, index) => (
+        {visibleReasons.map((reason, index) => (
           <li key={`${item.id}-reason-${index}`} className="leading-relaxed">• {reason}</li>
         ))}
       </ul>
+      {item.recommendationReasons.length > 3 && (
+        <button
+          type="button"
+          className="self-start text-xs text-blue-600 dark:text-blue-300 hover:underline"
+          onClick={(event) => {
+            event.stopPropagation()
+            setShowAllReasons((prev) => !prev)
+          }}
+        >
+          {showAllReasons ? 'Mostrar menos detalhes' : `Ver explicação completa (${item.recommendationReasons.length} pontos)`}
+        </button>
+      )}
     </div>
   )
 }
