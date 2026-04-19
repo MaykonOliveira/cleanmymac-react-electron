@@ -23,5 +23,10 @@ contextBridge.exposeInMainWorld('cleaner', {
     const handler = (_: unknown, value: { frequency: 'off' | 'weekly' | 'monthly'; dueAt: number }) => cb(value)
     ipcRenderer.on('scan-reminder', handler)
     return () => ipcRenderer.removeListener('scan-reminder', handler)
+  },
+  onTrayAction: (cb: (action: 'scan-quick' | 'scan-safe' | 'scan-complete' | 'reminder-weekly' | 'reminder-monthly' | 'toggle-theme') => void) => {
+    const handler = (_: unknown, value: 'scan-quick' | 'scan-safe' | 'scan-complete' | 'reminder-weekly' | 'reminder-monthly' | 'toggle-theme') => cb(value)
+    ipcRenderer.on('tray-action', handler)
+    return () => ipcRenderer.removeListener('tray-action', handler)
   }
 })
