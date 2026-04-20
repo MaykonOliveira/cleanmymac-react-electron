@@ -2,6 +2,8 @@ import path from 'node:path'
 import { SCAN_PROFILES, scanAllCategories } from './scanners.js'
 
 export type ReminderFrequency = 'off' | 'weekly' | 'monthly'
+export type AutomationFrequency = 'daily' | 'weekly' | 'monthly'
+export type AutomationMode = 'suggest' | 'auto'
 
 export type LocalMetrics = {
   enabled: boolean
@@ -33,11 +35,48 @@ export type ReminderSettings = {
   lastReminderSentAt?: number
 }
 
+export type AutomationRule = {
+  id: string
+  name: string
+  enabled: boolean
+  frequency: AutomationFrequency
+  windowHour: number
+  diskThresholdPercent: number
+  mode: AutomationMode
+  profile: keyof typeof SCAN_PROFILES
+  createdAt: number
+  lastRunAt?: number
+  nextRunAt?: number
+}
+
+export type AutomationRunLog = {
+  ruleId: string
+  ruleName: string
+  at: number
+  mode: AutomationMode
+  itemsFound: number
+  itemsDeleted: number
+  bytesDeleted: number
+  status: 'success' | 'partial' | 'skipped' | 'error'
+  message?: string
+}
+
+export type AutomationSettings = {
+  rules: AutomationRule[]
+  logs: AutomationRunLog[]
+}
+
 export type ScanSettings = {
   authorizedDirectories: string[]
   scanProfile: keyof typeof SCAN_PROFILES
   reminder: ReminderSettings
   metrics: LocalMetrics
+  automation: AutomationSettings
+}
+
+export const DEFAULT_AUTOMATION: AutomationSettings = {
+  rules: [],
+  logs: []
 }
 
 export const DEFAULT_SETTINGS: ScanSettings = {
@@ -58,7 +97,8 @@ export const DEFAULT_SETTINGS: ScanSettings = {
     },
     timeline: {},
     history: []
-  }
+  },
+  automation: DEFAULT_AUTOMATION
 }
 
 type LoadScanSettings = () => Promise<ScanSettings>
@@ -67,13 +107,14 @@ type AddAuthorizedDirectory = () => Promise<ScanSettings | null>
 
 type IpcHandlerDependencies = {
   getHomePath: () => string
-  getWindow: () => { webContents: { send: (channel: string, payload: number | { frequency: ReminderFrequency; dueAt: number }) => void } } | null
+  getWindow: () => { webContents: { send: (channel: string, payload: unknown) => void } } | null
   loadScanSettings: LoadScanSettings
   saveScanSettings: SaveScanSettings
   addAuthorizedDirectory: AddAuthorizedDirectory
   runScanAllCategories?: typeof scanAllCategories
   trashItem: (targetPath: string) => Promise<void>
   onSettingsUpdated: (settings: ScanSettings) => void
+  getDiskFreePercent?: () => Promise<number>
 }
 
 const REMINDER_INTERVAL_MS: Record<Exclude<ReminderFrequency, 'off'>, number> = {
@@ -81,9 +122,26 @@ const REMINDER_INTERVAL_MS: Record<Exclude<ReminderFrequency, 'off'>, number> = 
   monthly: 30 * 24 * 60 * 60 * 1000
 }
 
+const AUTOMATION_INTERVAL_MS: Record<AutomationFrequency, number> = {
+  daily: 24 * 60 * 60 * 1000,
+  weekly: 7 * 24 * 60 * 60 * 1000,
+  monthly: 30 * 24 * 60 * 60 * 1000
+}
+
 function nextReminderTimestamp(frequency: ReminderFrequency, from = Date.now()): number | undefined {
   if (frequency === 'off') return undefined
   return from + REMINDER_INTERVAL_MS[frequency]
+}
+
+function nextAutomationTimestamp(frequency: AutomationFrequency, windowHour: number, from = Date.now()): number {
+  const base = from + AUTOMATION_INTERVAL_MS[frequency]
+  const d = new Date(base)
+  d.setHours(windowHour, 0, 0, 0)
+  return d.getTime()
+}
+
+function generateId(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 }
 
 function withUpdatedMetricTotals(current: ScanSettings, updater: (metrics: LocalMetrics) => LocalMetrics): ScanSettings {
@@ -337,6 +395,273 @@ export function createIpcHandlers(deps: IpcHandlerDependencies) {
       }
 
       return { deleted, failed }
+    },
+
+    // RF-03: Automation handlers
+
+    getAutomation: async (): Promise<AutomationSettings> => {
+      const settings = await deps.loadScanSettings()
+      return settings.automation
+    },
+
+    createAutomationRule: async (_event: unknown, ruleData: unknown): Promise<AutomationSettings> => {
+      const settings = await deps.loadScanSettings()
+      const data = ruleData && typeof ruleData === 'object' ? ruleData as Record<string, unknown> : {}
+
+      const frequency: AutomationFrequency =
+        data.frequency === 'daily' || data.frequency === 'weekly' || data.frequency === 'monthly'
+          ? data.frequency
+          : 'weekly'
+
+      const mode: AutomationMode = data.mode === 'auto' || data.mode === 'suggest' ? data.mode : 'suggest'
+
+      const profile =
+        typeof data.profile === 'string' && Object.hasOwn(SCAN_PROFILES, data.profile)
+          ? (data.profile as keyof typeof SCAN_PROFILES)
+          : settings.scanProfile
+
+      const windowHour = typeof data.windowHour === 'number'
+        ? Math.max(0, Math.min(23, Math.floor(data.windowHour)))
+        : 3
+
+      const diskThresholdPercent = typeof data.diskThresholdPercent === 'number'
+        ? Math.max(0, Math.min(100, Math.floor(data.diskThresholdPercent)))
+        : 0
+
+      const now = Date.now()
+      const newRule: AutomationRule = {
+        id: generateId(),
+        name: typeof data.name === 'string' && data.name.trim() ? data.name.trim() : 'Nova automação',
+        enabled: typeof data.enabled === 'boolean' ? data.enabled : true,
+        frequency,
+        windowHour,
+        diskThresholdPercent,
+        mode,
+        profile,
+        createdAt: now,
+        nextRunAt: nextAutomationTimestamp(frequency, windowHour, now)
+      }
+
+      const saved = await deps.saveScanSettings({
+        ...settings,
+        automation: {
+          ...settings.automation,
+          rules: [...settings.automation.rules, newRule]
+        }
+      })
+
+      deps.onSettingsUpdated(saved)
+      return saved.automation
+    },
+
+    updateAutomationRule: async (_event: unknown, id: unknown, patch: unknown): Promise<AutomationSettings> => {
+      if (typeof id !== 'string') return (await deps.loadScanSettings()).automation
+      const settings = await deps.loadScanSettings()
+      const data = patch && typeof patch === 'object' ? patch as Record<string, unknown> : {}
+
+      const rules = settings.automation.rules.map((rule) => {
+        if (rule.id !== id) return rule
+
+        const frequency: AutomationFrequency =
+          data.frequency === 'daily' || data.frequency === 'weekly' || data.frequency === 'monthly'
+            ? data.frequency
+            : rule.frequency
+
+        const mode: AutomationMode = data.mode === 'auto' || data.mode === 'suggest' ? data.mode : rule.mode
+
+        const profile =
+          typeof data.profile === 'string' && Object.hasOwn(SCAN_PROFILES, data.profile)
+            ? (data.profile as keyof typeof SCAN_PROFILES)
+            : rule.profile
+
+        const windowHour = typeof data.windowHour === 'number'
+          ? Math.max(0, Math.min(23, Math.floor(data.windowHour)))
+          : rule.windowHour
+
+        const diskThresholdPercent = typeof data.diskThresholdPercent === 'number'
+          ? Math.max(0, Math.min(100, Math.floor(data.diskThresholdPercent)))
+          : rule.diskThresholdPercent
+
+        const updated: AutomationRule = {
+          ...rule,
+          frequency,
+          mode,
+          profile,
+          windowHour,
+          diskThresholdPercent,
+          name: typeof data.name === 'string' && data.name.trim() ? data.name.trim() : rule.name,
+          enabled: typeof data.enabled === 'boolean' ? data.enabled : rule.enabled
+        }
+
+        if (data.frequency && data.frequency !== rule.frequency) {
+          updated.nextRunAt = nextAutomationTimestamp(frequency, windowHour)
+        }
+
+        return updated
+      })
+
+      const saved = await deps.saveScanSettings({
+        ...settings,
+        automation: { ...settings.automation, rules }
+      })
+
+      deps.onSettingsUpdated(saved)
+      return saved.automation
+    },
+
+    deleteAutomationRule: async (_event: unknown, id: unknown): Promise<AutomationSettings> => {
+      if (typeof id !== 'string') return (await deps.loadScanSettings()).automation
+      const settings = await deps.loadScanSettings()
+
+      const saved = await deps.saveScanSettings({
+        ...settings,
+        automation: {
+          ...settings.automation,
+          rules: settings.automation.rules.filter((r) => r.id !== id)
+        }
+      })
+
+      deps.onSettingsUpdated(saved)
+      return saved.automation
+    },
+
+    toggleAutomationRule: async (_event: unknown, id: unknown, enabled: unknown): Promise<AutomationSettings> => {
+      if (typeof id !== 'string' || typeof enabled !== 'boolean') {
+        return (await deps.loadScanSettings()).automation
+      }
+      const settings = await deps.loadScanSettings()
+
+      const rules = settings.automation.rules.map((rule) =>
+        rule.id === id ? { ...rule, enabled } : rule
+      )
+
+      const saved = await deps.saveScanSettings({
+        ...settings,
+        automation: { ...settings.automation, rules }
+      })
+
+      deps.onSettingsUpdated(saved)
+      return saved.automation
+    },
+
+    getAutomationLogs: async (): Promise<AutomationRunLog[]> => {
+      const settings = await deps.loadScanSettings()
+      return settings.automation.logs
+    },
+
+    runAutomationRule: async (rule: AutomationRule): Promise<AutomationRunLog> => {
+      const win = deps.getWindow()
+      const settings = await deps.loadScanSettings()
+      const now = Date.now()
+
+      // Check disk threshold
+      if (rule.diskThresholdPercent > 0 && deps.getDiskFreePercent) {
+        const freePercent = await deps.getDiskFreePercent()
+        if (freePercent >= rule.diskThresholdPercent) {
+          const log: AutomationRunLog = {
+            ruleId: rule.id,
+            ruleName: rule.name,
+            at: now,
+            mode: rule.mode,
+            itemsFound: 0,
+            itemsDeleted: 0,
+            bytesDeleted: 0,
+            status: 'skipped',
+            message: `Espaço livre (${Math.round(freePercent)}%) acima do limite (${rule.diskThresholdPercent}%)`
+          }
+
+          await deps.saveScanSettings({
+            ...settings,
+            automation: {
+              ...settings.automation,
+              logs: [log, ...settings.automation.logs].slice(0, 100),
+              rules: settings.automation.rules.map((r) =>
+                r.id === rule.id
+                  ? { ...r, lastRunAt: now, nextRunAt: nextAutomationTimestamp(rule.frequency, rule.windowHour, now) }
+                  : r
+              )
+            }
+          })
+
+          return log
+        }
+      }
+
+      // Run scan
+      const scanResult = await runScan({
+        allowedRoots: settings.authorizedDirectories,
+        profile: rule.profile,
+        onProgress: (progress) => {
+          win?.webContents.send('scan-progress', progress)
+        }
+      })
+
+      // Only low-risk items eligible for auto mode
+      const eligible = scanResult.items.filter((item) => item.riskLevel === 'low')
+
+      let itemsDeleted = 0
+      let bytesDeleted = 0
+      let status: AutomationRunLog['status'] = 'success'
+      let message: string | undefined
+
+      if (rule.mode === 'auto' && eligible.length > 0) {
+        const failed: string[] = []
+
+        for (const item of eligible) {
+          try {
+            await deps.trashItem(item.path)
+            itemsDeleted++
+            bytesDeleted += item.size
+          } catch {
+            failed.push(item.path)
+          }
+        }
+
+        if (failed.length > 0 && itemsDeleted === 0) {
+          status = 'error'
+          message = `Falha ao remover ${failed.length} itens`
+        } else if (failed.length > 0) {
+          status = 'partial'
+          message = `${failed.length} itens bloqueados pelo sistema`
+        }
+      } else if (rule.mode === 'suggest') {
+        message = `${eligible.length} itens prontos para limpeza`
+      }
+
+      const log: AutomationRunLog = {
+        ruleId: rule.id,
+        ruleName: rule.name,
+        at: now,
+        mode: rule.mode,
+        itemsFound: scanResult.items.length,
+        itemsDeleted,
+        bytesDeleted,
+        status,
+        message
+      }
+
+      const refreshed = await deps.loadScanSettings()
+      const saved = await deps.saveScanSettings({
+        ...refreshed,
+        automation: {
+          ...refreshed.automation,
+          logs: [log, ...refreshed.automation.logs].slice(0, 100),
+          rules: refreshed.automation.rules.map((r) =>
+            r.id === rule.id
+              ? { ...r, lastRunAt: now, nextRunAt: nextAutomationTimestamp(rule.frequency, rule.windowHour, now) }
+              : r
+          )
+        }
+      })
+
+      deps.onSettingsUpdated(saved)
+
+      // Notify renderer
+      if (win) {
+        win.webContents.send('automation-run', log)
+      }
+
+      return log
     }
   }
 }

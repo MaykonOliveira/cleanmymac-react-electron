@@ -1,14 +1,28 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { CleanupCategory, CleanupInsights, CleanupItem, CATEGORY_ORDER, CleanupPreset, ReminderFrequency, ScanProfile, SkippedScanTarget, TrayAction } from './types'
+import {
+  CleanupCategory,
+  CleanupInsights,
+  CleanupItem,
+  CATEGORY_ORDER,
+  CleanupPreset,
+  ReminderFrequency,
+  ScanProfile,
+  SkippedScanTarget,
+  TrayAction,
+  AutomationSettings,
+  AutomationRule,
+  AutomationRunLog
+} from './types'
 import { Header } from './components/Header'
 import { Sidebar } from './components/Sidebar'
 import { CategorySection } from './components/CategorySection'
 import { ScanScopeSelector } from './components/ScanScopeSelector'
 import { CleanupInsightsPanel } from './components/CleanupInsightsPanel'
+import { AutomationCenter } from './components/AutomationCenter'
 import { AlertDialog } from './components/ui/alert-dialog'
 import { useToast } from './components/ui/toast'
 import { formatBytes } from './utils/format'
-import { Search, Loader2, FolderOpen, ShieldAlert, Settings2, Files } from 'lucide-react'
+import { Search, Loader2, FolderOpen, ShieldAlert, Settings2, Files, Zap } from 'lucide-react'
 import { CATEGORY_INFO } from './types'
 
 const CLEANUP_PRESETS: Array<{ id: CleanupPreset; label: string; description: string }> = [
@@ -35,6 +49,8 @@ function shouldSelectByPreset(item: CleanupItem, preset: CleanupPreset): boolean
   return !(item.riskLevel === 'high' && item.safetyScore < 25)
 }
 
+const DEFAULT_AUTOMATION: AutomationSettings = { rules: [], logs: [] }
+
 export default function App() {
   const { addToast } = useToast()
   const [items, setItems] = useState<CleanupItem[]>([])
@@ -52,7 +68,8 @@ export default function App() {
   const [reminderFrequency, setReminderFrequency] = useState<ReminderFrequency>('off')
   const [metricsEnabled, setMetricsEnabled] = useState(false)
   const [cleanupInsights, setCleanupInsights] = useState<CleanupInsights | null>(null)
-  const [activeTab, setActiveTab] = useState<'config' | 'files'>('config')
+  const [activeTab, setActiveTab] = useState<'config' | 'files' | 'automation'>('config')
+  const [automation, setAutomation] = useState<AutomationSettings>(DEFAULT_AUTOMATION)
 
   useEffect(() => {
     if (!window.cleaner) return
@@ -69,6 +86,33 @@ export default function App() {
         variant: 'info',
         duration: 8000,
       })
+    })
+    return () => off && off()
+  }, [])
+
+  useEffect(() => {
+    if (!window.cleaner) return
+    const off = window.cleaner.onAutomationRun((log) => {
+      const runLog = log as unknown as AutomationRunLog
+      if (runLog.mode === 'suggest' && runLog.itemsFound > 0) {
+        addToast({
+          message: `Automação "${runLog.ruleName}": ${runLog.itemsFound} itens prontos para limpeza.`,
+          variant: 'info',
+          duration: 8000,
+        })
+      } else if (runLog.mode === 'auto' && runLog.itemsDeleted > 0) {
+        addToast({
+          message: `Automação "${runLog.ruleName}": ${runLog.itemsDeleted} itens removidos (${formatBytes(runLog.bytesDeleted)}).`,
+          variant: 'success',
+        })
+      }
+      setAutomation((prev) => ({
+        ...prev,
+        logs: [runLog, ...prev.logs].slice(0, 100),
+        rules: prev.rules.map((r) =>
+          r.id === runLog.ruleId ? { ...r, lastRunAt: runLog.at } : r
+        )
+      }))
     })
     return () => off && off()
   }, [])
@@ -126,6 +170,8 @@ export default function App() {
         setMetricsEnabled(settings.metrics.enabled)
         const insights = await window.cleaner.getCleanupInsights()
         setCleanupInsights(insights)
+        const auto = await window.cleaner.getAutomation()
+        setAutomation(auto)
       } catch {
         // falls back to useState defaults silently
       }
@@ -281,6 +327,32 @@ export default function App() {
     }
   }
 
+  // RF-03: Automation handlers
+
+  async function handleCreateRule(rule: Omit<AutomationRule, 'id' | 'createdAt'>) {
+    if (!window.cleaner) return
+    const updated = await window.cleaner.createAutomationRule(rule as Record<string, unknown>)
+    setAutomation(updated)
+  }
+
+  async function handleUpdateRule(id: string, patch: Partial<Omit<AutomationRule, 'id' | 'createdAt'>>) {
+    if (!window.cleaner) return
+    const updated = await window.cleaner.updateAutomationRule(id, patch as Record<string, unknown>)
+    setAutomation(updated)
+  }
+
+  async function handleDeleteRule(id: string) {
+    if (!window.cleaner) return
+    const updated = await window.cleaner.deleteAutomationRule(id)
+    setAutomation(updated)
+  }
+
+  async function handleToggleRule(id: string, enabled: boolean) {
+    if (!window.cleaner) return
+    const updated = await window.cleaner.toggleAutomationRule(id, enabled)
+    setAutomation(updated)
+  }
+
   function toggle(id: string) {
     setSelected(prev => ({ ...prev, [id]: !prev[id] }))
   }
@@ -304,6 +376,9 @@ export default function App() {
     })
     setActivePreset(null)
   }
+
+  // suppress unused variable warning
+  void totalSize
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 relative">
@@ -370,6 +445,22 @@ export default function App() {
                 Geral
               </button>
               <button
+                onClick={() => setActiveTab('automation')}
+                className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'automation'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                }`}
+              >
+                <Zap className="w-4 h-4" />
+                Automação
+                {automation.rules.filter((r) => r.enabled).length > 0 && (
+                  <span className="ml-1 text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-medium">
+                    {automation.rules.filter((r) => r.enabled).length}
+                  </span>
+                )}
+              </button>
+              <button
                 onClick={() => setActiveTab('files')}
                 className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === 'files'
@@ -423,6 +514,18 @@ export default function App() {
                     </ul>
                   </div>
                 )}
+              </div>
+            )}
+
+            {activeTab === 'automation' && (
+              <div className="p-4 sm:p-6 lg:p-8">
+                <AutomationCenter
+                  automation={automation}
+                  onCreateRule={handleCreateRule}
+                  onUpdateRule={handleUpdateRule}
+                  onDeleteRule={handleDeleteRule}
+                  onToggleRule={handleToggleRule}
+                />
               </div>
             )}
 

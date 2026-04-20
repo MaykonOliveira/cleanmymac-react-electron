@@ -14,6 +14,15 @@ contextBridge.exposeInMainWorld('cleaner', {
     'delete-items',
     Array.isArray(paths) ? paths.filter((p) => typeof p === 'string') : []
   ),
+
+  // RF-03: Automation
+  getAutomation: () => ipcRenderer.invoke('automation:get'),
+  createAutomationRule: (rule: Record<string, unknown>) => ipcRenderer.invoke('automation:create-rule', rule),
+  updateAutomationRule: (id: string, patch: Record<string, unknown>) => ipcRenderer.invoke('automation:update-rule', id, patch),
+  deleteAutomationRule: (id: string) => ipcRenderer.invoke('automation:delete-rule', id),
+  toggleAutomationRule: (id: string, enabled: boolean) => ipcRenderer.invoke('automation:toggle-rule', id, enabled),
+  getAutomationLogs: () => ipcRenderer.invoke('automation:get-logs'),
+
   onScanProgress: (cb: (progress: number) => void) => {
     const handler = (_: unknown, value: number) => cb(value)
     ipcRenderer.on('scan-progress', handler)
@@ -28,5 +37,10 @@ contextBridge.exposeInMainWorld('cleaner', {
     const handler = (_: unknown, value: 'scan-quick' | 'scan-safe' | 'scan-complete' | 'reminder-weekly' | 'reminder-monthly' | 'toggle-theme') => cb(value)
     ipcRenderer.on('tray-action', handler)
     return () => ipcRenderer.removeListener('tray-action', handler)
+  },
+  onAutomationRun: (cb: (log: Record<string, unknown>) => void) => {
+    const handler = (_: unknown, value: Record<string, unknown>) => cb(value)
+    ipcRenderer.on('automation-run', handler)
+    return () => ipcRenderer.removeListener('automation-run', handler)
   }
 })

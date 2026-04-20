@@ -21,6 +21,10 @@ function buildSettings(): ScanSettings {
       },
       timeline: {},
       history: []
+    },
+    automation: {
+      rules: [],
+      logs: []
     }
   }
 }

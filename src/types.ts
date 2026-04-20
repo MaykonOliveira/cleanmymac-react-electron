@@ -5,6 +5,8 @@ export type RiskLevel = 'low' | 'medium' | 'high'
 export type CleanupPreset = 'conservative' | 'balanced' | 'aggressive'
 export type ReminderFrequency = 'off' | 'weekly' | 'monthly'
 export type TrayAction = 'scan-quick' | 'scan-safe' | 'scan-complete' | 'reminder-weekly' | 'reminder-monthly' | 'toggle-theme'
+export type AutomationFrequency = 'daily' | 'weekly' | 'monthly'
+export type AutomationMode = 'suggest' | 'auto'
 
 export interface CategoryInfo {
   id: CleanupCategory
@@ -82,11 +84,95 @@ export interface ReminderSettings {
   lastReminderSentAt?: number
 }
 
+export interface AutomationRule {
+  id: string
+  name: string
+  enabled: boolean
+  frequency: AutomationFrequency
+  /** Hour of day 0-23 to run (local time) */
+  windowHour: number
+  /** Trigger when free disk space percent drops below this value (0 = disabled) */
+  diskThresholdPercent: number
+  mode: AutomationMode
+  profile: ScanProfile
+  createdAt: number
+  lastRunAt?: number
+  nextRunAt?: number
+}
+
+export interface AutomationRunLog {
+  ruleId: string
+  ruleName: string
+  at: number
+  mode: AutomationMode
+  itemsFound: number
+  itemsDeleted: number
+  bytesDeleted: number
+  status: 'success' | 'partial' | 'skipped' | 'error'
+  message?: string
+}
+
+export interface AutomationSettings {
+  rules: AutomationRule[]
+  logs: AutomationRunLog[]
+}
+
+export const AUTOMATION_TEMPLATES: Array<{
+  id: string
+  name: string
+  description: string
+  rule: Omit<AutomationRule, 'id' | 'createdAt'>
+}> = [
+  {
+    id: 'weekly-safe',
+    name: 'Limpeza semanal segura',
+    description: 'Toda semana de madrugada — apenas itens de baixo risco',
+    rule: {
+      name: 'Limpeza semanal segura',
+      enabled: true,
+      frequency: 'weekly',
+      windowHour: 3,
+      diskThresholdPercent: 0,
+      mode: 'auto',
+      profile: 'safe'
+    }
+  },
+  {
+    id: 'monthly-complete',
+    name: 'Limpeza mensal completa',
+    description: 'Todo mês — análise completa com sugestão para revisão',
+    rule: {
+      name: 'Limpeza mensal completa',
+      enabled: true,
+      frequency: 'monthly',
+      windowHour: 2,
+      diskThresholdPercent: 0,
+      mode: 'suggest',
+      profile: 'complete'
+    }
+  },
+  {
+    id: 'disk-pressure',
+    name: 'Alerta de espaço em disco',
+    description: 'Sugere limpeza quando disco livre cair abaixo de 15%',
+    rule: {
+      name: 'Alerta de espaço em disco',
+      enabled: true,
+      frequency: 'daily',
+      windowHour: 10,
+      diskThresholdPercent: 15,
+      mode: 'suggest',
+      profile: 'quick'
+    }
+  }
+]
+
 export interface ScanSettings {
   authorizedDirectories: string[]
   scanProfile: ScanProfile
   reminder: ReminderSettings
   metrics: LocalMetricsSettings
+  automation: AutomationSettings
 }
 
 declare global {
@@ -102,9 +188,17 @@ declare global {
       trackMetricEvent: (eventName: string, payload?: Record<string, unknown>) => Promise<void>
       getCleanupInsights: () => Promise<CleanupInsights>
       deleteItems: (paths: string[]) => Promise<{ deleted: number, failed: { path: string, message: string }[] }>
+      // RF-03 automation
+      getAutomation: () => Promise<AutomationSettings>
+      createAutomationRule: (rule: Omit<AutomationRule, 'id' | 'createdAt'>) => Promise<AutomationSettings>
+      updateAutomationRule: (id: string, patch: Partial<Omit<AutomationRule, 'id' | 'createdAt'>>) => Promise<AutomationSettings>
+      deleteAutomationRule: (id: string) => Promise<AutomationSettings>
+      toggleAutomationRule: (id: string, enabled: boolean) => Promise<AutomationSettings>
+      getAutomationLogs: () => Promise<AutomationRunLog[]>
       onScanProgress: (cb: (progress: number) => void) => () => void
       onReminder: (cb: (payload: { frequency: ReminderFrequency; dueAt: number }) => void) => () => void
       onTrayAction: (cb: (action: TrayAction) => void) => () => void
+      onAutomationRun: (cb: (log: AutomationRunLog) => void) => () => void
     }
   }
 }
