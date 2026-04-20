@@ -1,5 +1,6 @@
 import path from 'node:path'
 import { SCAN_PROFILES, scanAllCategories } from './scanners.js'
+import { getDiskSpace } from './fs.js'
 
 export type ReminderFrequency = 'off' | 'weekly' | 'monthly'
 export type AutomationFrequency = 'daily' | 'weekly' | 'monthly'
@@ -354,7 +355,9 @@ export function createIpcHandlers(deps: IpcHandlerDependencies) {
           bytesDeleted: settings.metrics.totals.bytesDeleted
         },
         timeline: settings.metrics.timeline,
-        recentRuns: settings.metrics.history.slice(0, 5)
+        recentRuns: settings.metrics.history.slice(0, 5),
+        allHistory: settings.metrics.history,
+        diskSpace: getDiskSpace()
       }
     },
 

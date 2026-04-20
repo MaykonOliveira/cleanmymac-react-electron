@@ -64,6 +64,12 @@ export interface CleanupRunSummary {
   deletedByCategory: Partial<Record<CleanupCategory, number>>
 }
 
+export interface DiskSpaceInfo {
+  totalBytes: number
+  freeBytes: number
+  usedBytes: number
+}
+
 export interface CleanupInsights {
   totals: {
     cleanActions: number
@@ -76,6 +82,8 @@ export interface CleanupInsights {
     lastCleanAt?: number
   }
   recentRuns: CleanupRunSummary[]
+  allHistory?: CleanupRunSummary[]
+  diskSpace?: DiskSpaceInfo
 }
 
 export interface ReminderSettings {

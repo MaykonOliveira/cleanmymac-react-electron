@@ -19,10 +19,11 @@ import { CategorySection } from './components/CategorySection'
 import { ScanScopeSelector } from './components/ScanScopeSelector'
 import { CleanupInsightsPanel } from './components/CleanupInsightsPanel'
 import { AutomationCenter } from './components/AutomationCenter'
+import { SystemHealthDashboard } from './components/SystemHealthDashboard'
 import { AlertDialog } from './components/ui/alert-dialog'
 import { useToast } from './components/ui/toast'
 import { formatBytes } from './utils/format'
-import { Search, Loader2, FolderOpen, ShieldAlert, Settings2, Files, Zap } from 'lucide-react'
+import { Search, Loader2, FolderOpen, ShieldAlert, Settings2, Files, Zap, Activity } from 'lucide-react'
 import { CATEGORY_INFO } from './types'
 
 const CLEANUP_PRESETS: Array<{ id: CleanupPreset; label: string; description: string }> = [
@@ -68,7 +69,7 @@ export default function App() {
   const [reminderFrequency, setReminderFrequency] = useState<ReminderFrequency>('off')
   const [metricsEnabled, setMetricsEnabled] = useState(false)
   const [cleanupInsights, setCleanupInsights] = useState<CleanupInsights | null>(null)
-  const [activeTab, setActiveTab] = useState<'config' | 'files' | 'automation'>('config')
+  const [activeTab, setActiveTab] = useState<'config' | 'files' | 'automation' | 'health'>('config')
   const [automation, setAutomation] = useState<AutomationSettings>(DEFAULT_AUTOMATION)
 
   useEffect(() => {
@@ -461,6 +462,17 @@ export default function App() {
                 )}
               </button>
               <button
+                onClick={() => setActiveTab('health')}
+                className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'health'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                }`}
+              >
+                <Activity className="w-4 h-4" />
+                Saúde
+              </button>
+              <button
                 onClick={() => setActiveTab('files')}
                 className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === 'files'
@@ -515,6 +527,10 @@ export default function App() {
                   </div>
                 )}
               </div>
+            )}
+
+            {activeTab === 'health' && (
+              <SystemHealthDashboard insights={cleanupInsights} />
             )}
 
             {activeTab === 'automation' && (

@@ -2,98 +2,71 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Claude Behavior
+
+- **Always use caveman mode** — activate the `caveman` skill at session start; keep active for all responses
+- **Always use frontend-design skill** for any UI/component work — do not write plain frontend code without it
+
 ## Development Commands
 
-### Development
 ```bash
-npm run dev          # Start development server (Vite + Electron)
-npm run start        # Start Electron with built files
+npm run dev                # Start dev server (Vite + Electron, hot-reload)
+npm run build              # Build React + Electron (outputs dist/ + dist-electron/)
+npm run lint               # TypeScript type-check (tsc --noEmit)
+npm run typecheck          # Same as lint
+npm run test:smoke:ipc     # Build electron + run IPC smoke tests
+npm run ci                 # lint + typecheck + smoke tests
+npm run build:dmg          # Build macOS DMG package
+npm run build:mas          # Build Mac App Store package
 ```
 
-### Building
-```bash
-npm run build:react  # Build React app only
-npm run build        # Build React app + create Electron app
-npm run make:mac     # Build macOS DMG package
-```
+## Architecture
 
-### Linting
-```bash
-npm run lint         # Currently placeholder - add actual linter here
-```
+### Process Split
+- `electron/` — main process (Node.js). All filesystem ops live here.
+- `src/` — renderer process (React). No direct fs access.
+- `electron/core/` — modular main-process logic:
+  - `scanners.ts` — scan profiles, category target resolution, safety scoring
+  - `ipc-handlers.ts` — pure business logic for all IPC operations (testable without Electron)
+  - `ipc.ts` — wires `ipcMain` to handlers, manages reminder/automation timers
+  - `window.ts` — `BrowserWindow` factory
+  - `fs.ts` — filesystem helpers (`getDirectorySize`, `statSafe`, `olderThan`)
 
-## Project Architecture
+### IPC Contract
+Renderer calls via `window.cleaner` (exposed in `electron/preload.ts`). Main handles:
+- `scan-all` — runs `scanAllCategories`, streams progress via `scan-progress` events
+- `delete-items` — trashes selected paths via `shell.trashItem`
+- `scan-settings:*` — authorized directories, scan profile, reminder frequency
+- `metrics:*` — opt-in local metrics, cleanup insights
+- `automation:*` — CRUD for automation rules, run logs (RF-03)
 
-### Tech Stack
-- **React + TypeScript** - Main UI framework with strict typing
-- **Electron** - Desktop app wrapper with secure context isolation
-- **Vite** - Development server and build tool
-- **Tailwind CSS** - Utility-first styling with dark mode support
-- **Radix UI** - Accessible component primitives
+### Scan Profiles
+Three profiles in `SCAN_PROFILES` (`scanners.ts`):
+- `quick` — Cache, Logs, Old Downloads
+- `safe` — + Temporary, Browser Cache (default)
+- `complete` — + App Support
 
-### Key Architecture Patterns
+Each category scans predefined macOS paths under `~/Library/`. The scanner enforces `allowedRoots` (user-authorized directories) before accessing any path. Items get a `safetyScore` (0–100) and `riskLevel` (`low/medium/high`) computed from category, size, age, and type.
 
-**Secure Electron Setup:**
-- Context isolation enabled (`contextIsolation: true`)
-- Node integration disabled (`nodeIntegration: false`) 
-- Preload script exposes minimal API via `contextBridge`
-- Main process handles all filesystem operations
+### Settings Persistence
+`ScanSettings` serialized to `<userData>/scan-settings.json`. Schema normalized on load in `ipc.ts:normalizeSettings` — safe to read partial/corrupt JSON.
 
-**IPC Communication:**
-- `electron/preload.ts` - Exposes `window.cleaner` API to renderer
-- `electron/main.ts` - Handles `scan-all` and `delete-items` IPC calls
-- Real-time progress updates via `scan-progress` events
+### State Management (Renderer)
+- `App.tsx` owns global state: scan results, selected items (`Record<string, boolean>`), sidebar/loading state
+- `useMemo` for category grouping
+- Theme via `src/contexts/theme-provider.tsx` (Tailwind `"class"` strategy)
 
-**Component Structure:**
-- `src/components/` - Feature components (Header, Sidebar, CategorySection, ItemRow)
-- `src/components/ui/` - Reusable UI primitives (shadcn/ui style)
-- `src/contexts/` - React contexts (theme provider)
-- `src/types.ts` - Shared TypeScript interfaces and types
+### Tray
+System tray created at app start. Tray actions (`scan-quick`, `scan-safe`, `scan-complete`, `reminder-weekly/monthly`, `toggle-theme`) sent to renderer via `tray-action` IPC event.
 
-### File System Scanner Architecture
+### Automation
+Rules stored in `ScanSettings.automation.rules`. Background `setInterval` (1 min) in `ipc.ts` checks due rules and either auto-deletes or notifies via `automation-run` IPC + macOS `Notification`.
 
-**Categories & Scanning:**
-- 6 predefined cleanup categories: Cache, Logs, Temporary, Old Downloads, Browser Cache, App Support
-- Each category has dedicated scanner function in `electron/main.ts`
-- Scanners respect macOS security boundaries and permissions
-- Progress tracking during multi-category scans
+## Key Notes
 
-**Safe Deletion:**
-- Primary method: `trash` library (moves to macOS Trash)
-- Fallback: `sudo` prompt for system-protected paths
-- Never permanently deletes files directly
-
-### State Management
-
-**React State Patterns:**
-- Global app state in `App.tsx` with hooks
-- Selected items tracked via `Record<string, boolean>` mapping
-- Category grouping computed via `useMemo` for performance
-- Responsive sidebar state management
-
-## Development Notes
-
-### Path Aliasing
-- `@/*` maps to `./src/*` (configured in tsconfig.json and vite.config.ts)
-
-### Styling System  
-- Tailwind configured with custom color system using CSS variables
-- Dark mode support via `"class"` strategy
-- Safe area insets for macOS integration
-
-### Build Configuration
-- Vite builds to `dist/` directory
-- Electron-builder packages from `dist/` + `electron/` folders
-- macOS app ID: `com.maykon.cleanmymacpro`
-- Target: DMG for macOS distribution
-
-### Security Considerations
-- All filesystem operations isolated to main process
-- Preload script provides minimal API surface
-- User confirmation required before deletions
-- Respects macOS permission boundaries (may require Full Disk Access)
-
-### UI Language
-- Interface uses Portuguese (Brazilian) text
-- Error messages and confirmations in Portuguese
-- Consider this when modifying user-facing strings
+- **Output dirs**: Vite → `dist/`, Electron tsc → `dist-electron/`
+- **Path alias**: `@/*` → `./src/*`
+- **UI language**: Portuguese (Brazilian) — keep all user-facing strings in pt-BR
+- **No permanent deletes**: always use `shell.trashItem`; system paths may need sudo fallback
+- **macOS entitlements**: `build/entitlements.mas.plist` — required for App Store
+- **Tests**: only smoke tests exist (`electron/core/__tests__/ipc-smoke.test.ts`), no unit test suite
